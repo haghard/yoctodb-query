@@ -14,6 +14,7 @@ def emitSources(
   sourceManagedPath: java.io.File
 ): List[(scala.meta.Source, java.io.File)] = {
 
+  //predefined schema
   val schema =
     List(
       ("Year", "games_yy", classOf[java.lang.Integer].getSimpleName(), t"FilterableNum"),
@@ -38,8 +39,8 @@ def emitSources(
   loadIndex().map { case (sorted, filtered) =>
     if(sorted.contains("games_ts") //sorted
       && (filtered.asScala.intersect(expectedFiltered) == expectedFiltered)) {
-      schema.map { case (name, columnName, scalaType, op) =>
-        (generate(name, columnName, scalaType, op), sourceManagedPath / "query" / "dsl" / s"${name}.scala")
+      schema.map { case (name, columnName, tp, traitToImpl) =>
+        (generate(name, columnName, tp, traitToImpl), sourceManagedPath / "query" / "dsl" / s"${name}.scala")
       } :+ (genIndex(cols), sourceManagedPath / "query" / "dsl" / "SearchIndex.scala")
     } else {
       println("Schema error !!!")
@@ -50,7 +51,7 @@ def emitSources(
 
 
 def genIndex(columns: List[Term]): scala.meta.Source = {
-  val index = columns.foldLeft[Option[Term]](None) {
+  val indexTerm = columns.foldLeft[Option[Term]](None) {
     case (None, column) =>
       Some(column)
     case (Some(index), column) =>
@@ -61,7 +62,7 @@ def genIndex(columns: List[Term]): scala.meta.Source = {
     package query.dsl
     import  query.dsl.Col._
     object SearchIndex {
-      val index = ${index}
+      val index = ${indexTerm}
     }
   """
 }
@@ -78,7 +79,7 @@ def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String]
       val sorterField = db.getClass().getDeclaredField("sorters")
       sorterField.setAccessible(true)
       val sorterMaps = sorterField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.SortableIndex]]
-      println("**********Sorters***************")
+      println("**********Sorted***************")
       sorterMaps.keySet().forEach { (skey: String) =>
         println(skey + " -> " + sorterMaps.get(skey))
       }
@@ -86,7 +87,7 @@ def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String]
       val filterField = db.getClass().getDeclaredField("filters")
       filterField.setAccessible(true)
       val filterMaps = filterField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.FilterableIndex]]
-      println("**********Filters***************")
+      println("**********Filtered***************")
       filterMaps.keySet().forEach { (fkey: String) =>
         println(fkey + " -> " + filterMaps.get(fkey))
       }
@@ -161,7 +162,7 @@ def writeFiles(outputs: List[(scala.meta.Source, java.io.File)]): List[java.io.F
   }
 }
 
-lazy val generateTask = taskKey[List[java.io.File]]("A source-code-generating task")
+lazy val generateTask = taskKey[List[java.io.File]]("Source-code-generating task")
 
 generateTask := {
   // See SBT documentation on Caching to avoid triggering a recompilation:
