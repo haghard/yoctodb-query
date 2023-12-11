@@ -1,0 +1,58 @@
+<configuration>
+
+    <timestamp key="bySecond" datePattern="yyyy-MM-dd-HH-mm-ss"/>
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!--<pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%thread] - %msg%n</pattern>-->
+            <pattern>%date{ISO8601} %highlight(%-5level) [%thread] -  %highlight(%msg%n%ex{full})</pattern>
+
+            <!--If you  want  to get different colors for parts of log message you can use it -->
+            <!--<pattern>%yellow(%X{akkaTimestamp}) | %highlight(%-5level)  | [%green(%X{sourceThread}, %X{sourceActorSystem}, %X{akkaSource})] %cyan(%logger{36}) - %highlight(%msg%n%ex{full})</pattern>-->
+        </encoder>
+
+    </appender>
+
+    <appender name="timeBasedFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/ys-${bySecond}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--The first two are useful for testing-->
+
+            <!--Rollover by minute-->
+            <!--<fileNamePattern>log/gantt-%d{yyyy-MM-dd-HH-mm}.log</fileNamePattern>-->
+
+            <!--Rollover by minute UTC-->
+            <!--<fileNamePattern>log/gantt-%d{yyyy-MM-dd_HH-mm, UTC}.log</fileNamePattern>-->
+
+            <!--Rollover at the top of each hour-->
+            <!--<fileNamePattern>logs/gantt-%d{yyyy-MM-dd_HH}.log</fileNamePattern>-->
+
+            <!--Rollover the first day of each week-->
+            <!--<fileNamePattern>logs/gantt-%d{yyyy-ww}.log</fileNamePattern>-->
+
+            <!--Daily rollover (at midnight) with automatic GZIP compression of the archived files-->
+            <fileNamePattern>logs-arch/ys.%d.gz</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%date{ISO8601} %highlight(%-5level) [%thread] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="asyncConsole" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="console"/>
+    </appender>
+
+    <appender name="asyncTimeBasedFile" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="timeBasedFile"/>
+    </appender>
+
+    
+    <root level="DEBUG">
+        <!--<appender-ref ref="asyncFile"/>-->
+        <!--<appender-ref ref="asyncSizeBasedFile"/>-->
+        <!--<appender-ref ref="asyncTimeBasedFile"/>-->
+        <appender-ref ref="asyncConsole"/>
+    </root>
+
+</configuration>
