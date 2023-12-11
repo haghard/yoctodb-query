@@ -11,7 +11,7 @@ import query.dsl._
 import Col._
 
 /*
-  Codegen capabilities are inspired by https://github.com/blast-hardcheese/talks.git
+  Codegen capabilities are inspired by https://github.com/blast-hardcheese/talks/tree/2023-codegen-domain-separation
 */
 object Program extends App {
 
