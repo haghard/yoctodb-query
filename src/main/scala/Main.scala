@@ -52,3 +52,56 @@ object Program extends App {
     )
   }
 }
+
+//Try table encoding
+//https://www.slideshare.net/JaroslavRegec1/peeking-inside-the-engine-of-zio-sqlpdf
+
+/*
+edsl4
+object Terms {
+
+  sealed trait TermOps[T]
+  object Empty extends TermOps[Nothing]
+
+  trait FilterableOps[T] extends TermOps[T] {
+    def eq$(v: T): Unit
+    def notEq$(v: T): Unit
+  }
+
+  trait SetOps[T] extends TermOps[T] {
+    def in$(vs: Set[T]): Unit
+  }
+
+  trait TypedTermOps[T <: String & Singleton] {
+    type A
+    type Term <: TermOps[A]
+    def ops: Term
+  }
+
+  object TypedTermOps {
+
+    given name: TypedTermOps["name"] with {
+      type A = String
+      type Term = FilterableOps[A]
+      def ops: Term = new FilterableOps[A] {
+        def eq$(v: A): Unit = println(s"$v eq")
+        def notEq$(v: A): Unit = println(s"$v notEq")
+      }
+    }
+
+    given age: TypedTermOps["age"] with {
+      type A = Int
+      type Term = SetOps[Int]
+      def ops: Term = (vs: Set[Int]) => println(s"$vs in")
+    }
+  }
+
+  // end TypedTermOps
+
+  def term(name: String)(using TTC: TypedTermOps[name.type]): TTC.Term = TTC.ops
+
+  term("name").eq$("aa")
+  term("name").notEq$("aa")
+  term("age").in$(Set(1, 2))
+}
+*/

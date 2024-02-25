@@ -2,7 +2,7 @@ import _root_.sbt.Keys.*
 
 import java.nio.file.Paths
 import scala.util.Try
-import scala.meta.*
+import scala.meta._
 import com.yandex.yoctodb.DatabaseFormat
 import com.yandex.yoctodb.util.buf.Buffer
 import com.yandex.yoctodb.v1.immutable.V1Database
@@ -13,7 +13,6 @@ import scala.jdk.CollectionConverters.asScalaSetConverter
 def emitSources(
   sourceManagedPath: java.io.File
 ): List[(scala.meta.Source, java.io.File)] = {
-
   //predefined schema
   val schema =
     List(
@@ -33,7 +32,7 @@ def emitSources(
   val cols =
     schema.map { row =>
       val name = row._1
-      q"Col(${Term.Name(name)}())"
+      q"Col(${scala.meta.Term.Name(name)}())"
     }
 
   loadIndex().map { case (sorted, filtered) =>
@@ -57,10 +56,9 @@ def genIndex(columns: List[Term]): scala.meta.Source = {
     case (Some(index), column) =>
       Some(q"$index ++ $column")
   }.getOrElse(throw new Exception("Empty columns!"))
-
   source"""
     package query.dsl
-    import  query.dsl.Col._
+    import query.dsl.Col._
     object SearchIndex {
       val index = ${indexTerm}
     }
