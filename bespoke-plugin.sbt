@@ -29,7 +29,7 @@ def emitSources(
   val expectedFiltered =
     Set("games_yy", "games_dd", "games_mm", "games_stage", "games_ht", "games_at", "games_winner")
 
-  val cols =
+  val columns =
     schema.map { row =>
       val name = row._1
       q"Col(${scala.meta.Term.Name(name)}())"
@@ -40,7 +40,7 @@ def emitSources(
       && (filtered.asScala.intersect(expectedFiltered) == expectedFiltered)) {
       schema.map { case (name, columnName, tp, traitToImpl) =>
         (generate(name, columnName, tp, traitToImpl), sourceManagedPath / "query" / "dsl" / s"${name}.scala")
-      } :+ (genIndex(cols), sourceManagedPath / "query" / "dsl" / "SearchIndex.scala")
+      } :+ (genIndex(columns), sourceManagedPath / "query" / "dsl" / "SearchIndex.scala")
     } else {
       println("Schema error !!!")
       List.empty
@@ -74,31 +74,34 @@ def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String]
       val db: V1Database = reader.from(Buffer.mmap(indexFile, false)).asInstanceOf[V1Database]
       println(s"★ ★ ★ Index [${indexFile.length() / (1024 * 1024)}MB / NumOfDocs: ${db.getDocumentCount()} ] ★ ★ ★")
 
-      val sorterField = db.getClass().getDeclaredField("sorters")
-      sorterField.setAccessible(true)
-      val sorterMaps = sorterField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.SortableIndex]]
-      println("**********Sorted***************")
+      val sortersField = db.getClass().getDeclaredField("sorters")
+      sortersField.setAccessible(true)
+      val sorterMaps = sortersField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.SortableIndex]]
+      println("★ ★ ★  Sorted ★ ★ ★")
       sorterMaps.keySet().forEach { (skey: String) =>
         println(skey + " -> " + sorterMaps.get(skey))
       }
+      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★")
 
-      val filterField = db.getClass().getDeclaredField("filters")
-      filterField.setAccessible(true)
-      val filterMaps = filterField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.FilterableIndex]]
-      println("**********Filtered***************")
+      val filtersField = db.getClass().getDeclaredField("filters")
+      filtersField.setAccessible(true)
+      val filterMaps = filtersField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.FilterableIndex]]
+      println("★ ★ ★  Filtered  ★ ★ ★")
       filterMaps.keySet().forEach { (fkey: String) =>
         println(fkey + " -> " + filterMaps.get(fkey))
       }
+      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★")
 
-      /*
-      val storerField = db.getClass().getDeclaredField("storers")
-      storerField.setAccessible(true)
-      val storerMaps = storerField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.StoredIndex]]
-      println("**********Stored***************")
+
+      val storersField = db.getClass().getDeclaredField("storers")
+      storersField.setAccessible(true)
+      val storerMaps = storersField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.StoredIndex]]
+      println("★ ★ ★  Stored  ★ ★ ★")
       storerMaps.keySet().forEach { (skey: String) =>
         println(skey + " -> " + storerMaps.get(skey))
       }
-      */
+      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★")
+      
 
       (sorterMaps.keySet(), filterMaps.keySet())
 
