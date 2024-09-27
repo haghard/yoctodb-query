@@ -1,6 +1,6 @@
 import com.yandex.yoctodb.DatabaseFormat
 import com.yandex.yoctodb.immutable.Database
-import com.yandex.yoctodb.query.{QueryBuilder => yocto}
+import com.yandex.yoctodb.query.{ QueryBuilder => yocto }
 import com.yandex.yoctodb.util.buf.Buffer
 import com.yandex.yoctodb.v1.immutable.V1Database
 import org.slf4j.LoggerFactory
@@ -11,7 +11,6 @@ import query.dsl._
 import Col._
 
 object Program extends App {
-
   val logger = LoggerFactory.getLogger("app")
 
   import SearchIndex._
@@ -35,22 +34,30 @@ object Program extends App {
       if (indexFile.exists && indexFile.isFile) {
         val reader = DatabaseFormat.getCurrent().getDatabaseReader()
         val db = reader.from(Buffer.mmap(indexFile, false)).asInstanceOf[V1Database]
-        logger.warn("★ ★ ★    Index size: {} MB. Docs number: {}  ★ ★ ★", indexFile.length() / (1024 * 1024), db.getDocumentCount())
+        logger.warn(
+          "★ ★ ★    Index size: {} MB. Docs number: {}  ★ ★ ★",
+          indexFile.length() / (1024 * 1024),
+          db.getDocumentCount(),
+        )
         db
-      } else throw new Exception(s"Couldn't find or open file $indexPath")
+      }
+      else throw new Exception(s"Couldn't find or open file $indexPath")
     }
 
-  loadIndex().map { searchIndex: V1Database =>
-    searchIndex.execute(
-      query,
-      (docId: Int, _: Database) => {
-        val payload: com.yandex.yoctodb.util.buf.Buffer = searchIndex.getFieldValue(docId, "g_payload")
-        //val result = NbaResultPB.parseFrom(new com.yandex.yoctodb.util.buf.BufferInputStream(payload))
-        logger.debug(s"DocId: $docId ${payload.toByteArray.length}")
-        true
-      }
-    )
+  loadIndex().map {
+    searchIndex: V1Database =>
+      searchIndex.execute(
+        query,
+        (docId: Int, _: Database) => {
+          val payload: com.yandex.yoctodb.util.buf.Buffer =
+            searchIndex.getFieldValue(docId, "g_payload")
+          // val result = NbaResultPB.parseFrom(new com.yandex.yoctodb.util.buf.BufferInputStream(payload))
+          logger.debug(s"DocId: $docId ${payload.toByteArray.length}")
+          true
+        },
+      )
   }
+
 }
 
 //Try table encoding
@@ -104,4 +111,4 @@ object Terms {
   term("name").notEq$("aa")
   term("age").in$(Set(1, 2))
 }
-*/
+ */

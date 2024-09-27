@@ -137,7 +137,6 @@ def generate(termClName: String, columnName: String, scalaType: String, columnTy
       source"""
         package query.dsl
         import com.yandex.yoctodb.query._
-        import com.yandex.yoctodb.util.UnsignedByteArrays
         final case class ${term}(${accessorParam}) extends IndexColumn[$clmType] {
           ${CompanionFunctions.buildSortableTerm(columnTypeName, clmType)}
         }

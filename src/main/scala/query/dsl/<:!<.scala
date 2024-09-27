@@ -7,4 +7,5 @@ object <:!< {
   @scala.annotation.implicitAmbiguous("Cannot add ${B} to ${A} !")
   implicit def nsubAmbig1[A, B >: A]: A <:!< B = sys.error("Unexpected call")
   implicit def nsubAmbig2[A, B >: A]: A <:!< B = sys.error("Unexpected call")
+
 }
