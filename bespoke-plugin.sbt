@@ -1,19 +1,20 @@
 import _root_.sbt.Keys.*
 
 import java.nio.file.Paths
-import scala.util.Try
-import scala.meta._
+import scala.util.{ Try, Using }
+import scala.meta.*
 import com.yandex.yoctodb.DatabaseFormat
 import com.yandex.yoctodb.util.buf.Buffer
 import com.yandex.yoctodb.v1.immutable.V1Database
+import com.yandex.yoctodb.immutable.*
 
 import scala.jdk.CollectionConverters.asScalaSetConverter
 
 // The entrypoint of our project's source code generator
 def emitSources(
-  sourceManagedPath: java.io.File
-): List[(scala.meta.Source, java.io.File)] = {
-  //predefined schema
+    sourceManagedPath: java.io.File
+  ): List[(scala.meta.Source, java.io.File)] = {
+  // predefined/expected schema as a value
   val schema =
     List(
       ("Year", "games_yy", classOf[java.lang.Integer].getSimpleName(), t"FilterableNum"),
@@ -23,7 +24,7 @@ def emitSources(
       ("HomeTeam", "games_ht", classOf[String].getSimpleName(), t"Filterable"),
       ("AwayTeam", "games_at", classOf[String].getSimpleName(), t"Filterable"),
       ("Winner", "games_winner", classOf[String].getSimpleName(), t"Filterable"),
-      ("GameTime", "games_ts", classOf[java.lang.Long].getSimpleName(), t"Sortable")
+      ("GameTime", "games_ts", classOf[java.lang.Long].getSimpleName(), t"Sortable"),
     )
 
   val expectedFiltered =
@@ -35,27 +36,37 @@ def emitSources(
       q"Col(${scala.meta.Term.Name(name)}())"
     }
 
-  loadIndex().map { case (sorted, filtered) =>
-    if(sorted.contains("games_ts") //sorted
-      && (filtered.asScala.intersect(expectedFiltered) == expectedFiltered)) {
-      schema.map { case (name, columnName, tp, traitToImpl) =>
-        (generate(name, columnName, tp, traitToImpl), sourceManagedPath / "query" / "dsl" / s"${name}.scala")
-      } :+ (genIndex(columns), sourceManagedPath / "query" / "dsl" / "SearchIndex.scala")
-    } else {
-      println("Schema error !!!")
-      List.empty
+  loadIndex()
+    .map {
+      case (sorted, filtered) =>
+        if (
+            sorted.contains("games_ts") // sorted
+            && (filtered.asScala.intersect(expectedFiltered) == expectedFiltered)
+        )
+          schema.map {
+            case (name, columnName, tp, traitToImpl) =>
+              (
+                generate(name, columnName, tp, traitToImpl),
+                sourceManagedPath / "query" / "dsl" / s"${name}.scala",
+              )
+          } :+ (genIndex(columns), sourceManagedPath / "query" / "dsl" / "SearchIndex.scala")
+        else {
+          println("Schema error !!!")
+          List.empty
+        }
     }
-  }.getOrElse(List.empty)
+    .getOrElse(List.empty)
 }
 
-
 def genIndex(columns: List[Term]): scala.meta.Source = {
-  val indexTerm = columns.foldLeft[Option[Term]](None) {
-    case (None, column) =>
-      Some(column)
-    case (Some(index), column) =>
-      Some(q"$index ++ $column")
-  }.getOrElse(throw new Exception("Empty columns!"))
+  val indexTerm = columns
+    .foldLeft[Option[Term]](None) {
+      case (None, column) =>
+        Some(column)
+      case (Some(index), column) =>
+        Some(q"$index ++ $column")
+    }
+    .getOrElse(throw new Exception("Empty columns!"))
   source"""
     package query.dsl
     import query.dsl.Col._
@@ -65,52 +76,56 @@ def genIndex(columns: List[Term]): scala.meta.Source = {
   """
 }
 
-def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String])] = {
+def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String])] =
   Try {
     val indexPath = "indexes/games"
     val indexFile = Paths.get(indexPath).toFile()
-    if (indexFile.exists && indexFile.isFile) {
+    if (indexFile.exists() && indexFile.isFile()) {
       val reader = DatabaseFormat.getCurrent().getDatabaseReader()
       val db: V1Database = reader.from(Buffer.mmap(indexFile, false)).asInstanceOf[V1Database]
-      println(s"★ ★ ★ Index [${indexFile.length() / (1024 * 1024)}MB / NumOfDocs: ${db.getDocumentCount()} ] ★ ★ ★")
+      println(
+        s"★ ★ ★ Index [${indexFile.length() / (1024 * 1024)}MB / NumOfDocs: ${db.getDocumentCount()} ] ★ ★ ★\n"
+      )
 
       val sortersField = db.getClass().getDeclaredField("sorters")
       sortersField.setAccessible(true)
-      val sorterMaps = sortersField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.SortableIndex]]
-      println("★ ★ ★  Sorted ★ ★ ★")
-      sorterMaps.keySet().forEach { (skey: String) =>
-        println(skey + " -> " + sorterMaps.get(skey))
+      val sorters = sortersField.get(db).asInstanceOf[java.util.Map[String, SortableIndex]]
+      println("★ ★ ★  Sorters ★ ★ ★")
+      sorters.keySet().forEach { (skey: String) =>
+        println(skey + " -> " + sorters.get(skey))
       }
-      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★")
+      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★\n")
 
       val filtersField = db.getClass().getDeclaredField("filters")
       filtersField.setAccessible(true)
-      val filterMaps = filtersField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.FilterableIndex]]
-      println("★ ★ ★  Filtered  ★ ★ ★")
-      filterMaps.keySet().forEach { (fkey: String) =>
-        println(fkey + " -> " + filterMaps.get(fkey))
+      val filters = filtersField.get(db).asInstanceOf[java.util.Map[String, FilterableIndex]]
+      println("★ ★ ★  Filters  ★ ★ ★")
+      filters.keySet().forEach { (fkey: String) =>
+        println(fkey + " -> " + filters.get(fkey))
       }
-      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★")
-
+      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★\n")
 
       val storersField = db.getClass().getDeclaredField("storers")
       storersField.setAccessible(true)
-      val storerMaps = storersField.get(db).asInstanceOf[java.util.Map[String, com.yandex.yoctodb.immutable.StoredIndex]]
-      println("★ ★ ★  Stored  ★ ★ ★")
-      storerMaps.keySet().forEach { (skey: String) =>
-        println(skey + " -> " + storerMaps.get(skey))
+      val storers = storersField.get(db).asInstanceOf[java.util.Map[String, StoredIndex]]
+      println("★ ★ ★  Storers  ★ ★ ★")
+      storers.keySet().forEach { (skey: String) =>
+        println(skey + " -> " + storers.get(skey))
       }
-      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★")
-      
+      println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★\n")
 
-      (sorterMaps.keySet(), filterMaps.keySet())
+      (sorters.keySet(), filters.keySet())
 
-    } else throw new Exception(s"Couldn't find or open file $indexPath")
+    }
+    else throw new Exception(s"Couldn't find or open file $indexPath")
   }.toEither
-}
 
-
-def generate(termClName: String, columnName: String, scalaType: String, columnTypeName: scala.meta.Type.Name): scala.meta.Source = {
+def generate(
+    termClName: String,
+    columnName: String,
+    scalaType: String,
+    columnTypeName: scala.meta.Type.Name,
+  ): scala.meta.Source = {
   val term = Type.Name(termClName)
   val clmType = Type.Name(scalaType)
   val accessorParam = param"override val fieldName: String = $columnName"
@@ -152,13 +167,14 @@ def writeFiles(outputs: List[(scala.meta.Source, java.io.File)]): List[java.io.F
   import java.nio.file.Files
   import java.nio.file.Path
   import java.io.FileOutputStream
-  outputs.map { case (src, dest) =>
-    Files.createDirectories(Path.of(dest.getParent()))
-    val fos = new FileOutputStream(dest)
-    fos.write(src.syntax.getBytes())
-    fos.close()
-    println(s"Generated: $dest")
-    dest
+  outputs.map {
+    case (src, dest) =>
+      Files.createDirectories(Path.of(dest.getParent()))
+      Using.resource(new FileOutputStream(dest)) { fos =>
+        fos.write(src.syntax.getBytes())
+      }
+      println(s"Generated: $dest")
+      dest
   }
 }
 

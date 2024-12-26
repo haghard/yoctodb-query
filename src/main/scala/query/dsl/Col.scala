@@ -11,7 +11,7 @@ object Col {
     def ++[A <: Col[_]](
         that: A
       )(implicit
-        @nowarn ev: C <:!< A
+        @nowarn("msg=never used") ev: C <:!< A
       ): C & A =
       new Col(self.map + that.map.head).asInstanceOf[C & A]
 
