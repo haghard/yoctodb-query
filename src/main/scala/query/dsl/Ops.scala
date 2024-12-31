@@ -1,6 +1,9 @@
 package query.dsl
 
-sealed trait Ops[T]
+sealed trait Ops[T] {
+  def fieldName: String
+
+}
 
 trait Filterable[T] extends Ops[T] {
   def =:=(v: T): com.yandex.yoctodb.query.TermCondition
@@ -10,9 +13,6 @@ trait Filterable[T] extends Ops[T] {
 
   def in(vs: scala.collection.immutable.Set[T]): com.yandex.yoctodb.query.TermCondition
 
-}
-
-trait FilterableNum[T] extends Filterable[T] {
   def >(v: T): com.yandex.yoctodb.query.TermCondition
 
   def >=(v: T): com.yandex.yoctodb.query.TermCondition
@@ -29,3 +29,5 @@ trait Sortable[T] extends Ops[T] {
   def asc(): com.yandex.yoctodb.query.Order
 
 }
+
+trait Both[T] extends Sortable[T] with Filterable[T]

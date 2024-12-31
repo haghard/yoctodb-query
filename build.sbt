@@ -1,3 +1,5 @@
+import IndexGeneratorPlugin.autoImport._
+
 scalaVersion := "2.13.15"
 
 name := "yoctodb-query"
@@ -28,6 +30,8 @@ libraryDependencies ++=
     "ch.qos.logback"     %  "logback-classic" % "1.5.11",
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
+
+Compile / sourceGenerators += genFiles
 
 //test:run
 Test / sourceGenerators += Def.task {

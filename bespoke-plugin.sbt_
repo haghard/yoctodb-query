@@ -47,7 +47,7 @@ def emitSources(
             case (name, columnName, tp, traitToImpl) =>
               (
                 generate(name, columnName, tp, traitToImpl),
-                sourceManagedPath / "query" / "dsl" / s"${name}.scala",
+                sourceManagedPath / "query" / "dsl" / s"$name.scala",
               )
           } :+ (genIndex(columns), sourceManagedPath / "query" / "dsl" / "SearchIndex.scala")
         else {
@@ -71,7 +71,7 @@ def genIndex(columns: List[Term]): scala.meta.Source = {
     package query.dsl
     import query.dsl.Col._
     object SearchIndex {
-      val index = ${indexTerm}
+      val index = $indexTerm
     }
   """
 }
@@ -170,9 +170,7 @@ def writeFiles(outputs: List[(scala.meta.Source, java.io.File)]): List[java.io.F
   outputs.map {
     case (src, dest) =>
       Files.createDirectories(Path.of(dest.getParent()))
-      Using.resource(new FileOutputStream(dest)) { fos =>
-        fos.write(src.syntax.getBytes())
-      }
+      Using.resource(new FileOutputStream(dest))(_.write(src.syntax.getBytes()))
       println(s"Generated: $dest")
       dest
   }
@@ -187,4 +185,4 @@ generateTask := {
   writeFiles(emitSources(sourceManagedPath))
 }
 
-Compile / sourceGenerators += generateTask
+//Compile / sourceGenerators += generateTask
