@@ -20,7 +20,7 @@ import scala.reflect.ClassTag
   */
 object IndexDslGeneratorPlugin extends AutoPlugin {
 
-  override def requires = JvmPlugin
+  override def requires: sbt.Plugins = JvmPlugin
   override def trigger = allRequirements
 
   object autoImport {
@@ -34,10 +34,10 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
     }
   )
 
-  val expectedFiltered =
+  val knownFilters =
     Set("games_yy", "games_dd", "games_mm", "games_stage", "games_ht", "games_at", "games_winner")
 
-  val expectedSorted =
+  val knownSorters =
     Set("games_yy", "games_dd", "games_mm", "games_ts")
 
   def genSource(
@@ -47,8 +47,8 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       .map {
         case (sorted, filtered) =>
           if (
-              sorted.asScala.intersect(expectedSorted) == expectedSorted &&
-              (filtered.asScala.intersect(expectedFiltered) == expectedFiltered)
+              sorted.asScala.intersect(knownSorters) == knownSorters &&
+              (filtered.asScala.intersect(knownFilters) == knownFilters)
           )
             Some((generateSrc(), sourceManagedPath / "query" / "dsl" / "SearchIndexQueryDsl.scala"))
           else {
@@ -59,7 +59,7 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       .getOrElse(None)
 
   def generateSrc(): scala.meta.Source = {
-    val indexDslClazz =
+    val queryDslClazz =
       Defn.Class(
         mods = List(Mod.Final(), Mod.Case()),
         name = Type.Name("SearchIndexQueryDsl"),
@@ -131,7 +131,7 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       stats = List(
         Pkg(
           ref = Term.Select(qual = Term.Name("query"), name = Term.Name("dsl")),
-          body = Pkg.Body(List(imp1, imp2, indexDslClazz)),
+          body = Pkg.Body(List(imp1, imp2, queryDslClazz)),
         )
       )
     )
@@ -227,7 +227,7 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
             def <=(v: ${termTypeParamType}): TermCondition =
               QueryBuilder.lte(fieldName, UnsignedByteArrays.from(v))
           }
-        """
+      """
 
     Term.Param(
       mods = List(Mod.ValParam()),
@@ -237,7 +237,10 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
     )
   }
 
-  def mkBothParam[T: ClassTag](indexFieldName: String, caseClassFieldName: String): Term.Param = {
+  def mkBothParam[T: ClassTag](
+      indexFieldName: String,
+      caseClassFieldName: String,
+    ): Term.Param = {
     val termType = Type.Name("Both")
     val termTypeParamType = inferTypeParam[T]
     val rightHs =
@@ -266,7 +269,7 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
             def desc(): com.yandex.yoctodb.query.Order = QueryBuilder.desc(fieldName)
             def asc(): com.yandex.yoctodb.query.Order = QueryBuilder.asc(fieldName)
           }
-        """
+      """
 
     Term.Param(
       mods = List(Mod.ValParam()),
@@ -277,8 +280,10 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
 
   }
 
-  def mkSortableParam[T: ClassTag](indexFieldName: String, caseClassFieldName: String)
-      : Term.Param = {
+  def mkSortableParam[T: ClassTag](
+      indexFieldName: String,
+      caseClassFieldName: String,
+    ): Term.Param = {
     val termType = Type.Name("Sortable")
     val termTypeParamType = inferTypeParam[T]
 
@@ -289,7 +294,7 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
             def desc(): com.yandex.yoctodb.query.Order = QueryBuilder.desc(fieldName)
             def asc(): com.yandex.yoctodb.query.Order = QueryBuilder.asc(fieldName)
           }
-        """
+      """
 
     Term.Param(
       mods = List(Mod.ValParam()),
