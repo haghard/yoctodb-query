@@ -1,4 +1,4 @@
-import IndexGeneratorPlugin.autoImport._
+import IndexDslGeneratorPlugin.autoImport._
 
 scalaVersion := "2.13.15"
 
@@ -31,7 +31,7 @@ libraryDependencies ++=
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
 
-Compile / sourceGenerators += genFiles
+Compile / sourceGenerators += genIndexDsl
 
 //test:run
 Test / sourceGenerators += Def.task {

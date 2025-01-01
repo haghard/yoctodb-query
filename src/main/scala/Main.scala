@@ -15,17 +15,19 @@ import scala.util.control.NonFatal
 object Program extends App {
   val logger = LoggerFactory.getLogger("app")
 
-  val index = new SearchIndexQueryDsl()
+  val dsl = SearchIndexQueryDsl()
+
   val query =
     yocto
       .select
       .where(
         yocto.and(
-          index.gamesStage.in(Set("season-18-19", "season-19-20")),
-          yocto.or(index.homeTeam =:= "lal", index.awayTeam =:= "lal"),
+          dsl.stage.in(Set("season-18-19", "season-19-20")),
+          dsl.winner =:= "lal",
+          yocto.or(dsl.homeTeam =:= "lal", dsl.awayTeam =:= "lal"),
         )
       )
-      .orderBy(index.gamesTs.desc())
+      .orderBy(dsl.gameTs.desc())
     // .limit(10)
 
   def loadIndex(): Try[V1Database] =
@@ -62,7 +64,7 @@ object Program extends App {
             },
           )
         Thread.sleep(100)
-        logger.debug("★ ★ ★ Total: {} docs", cnt)
+        logger.debug("★ ★ ★ ResultSet:{} docs", cnt)
       }
       catch {
         case NonFatal(ex) => ex.printStackTrace()
