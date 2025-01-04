@@ -12,8 +12,29 @@ import com.yandex.yoctodb.immutable.*
 import sbt.internal.util.ManagedLogger
 
 import java.nio.file.Paths
+import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters.asScalaSetConverter
-import scala.reflect.ClassTag
+
+@implicitNotFound("Primitive type ${T} isn't supported")
+sealed trait PrimitiveValueType[T] {
+  def tp: Type.Name
+}
+
+object PrimitiveValueType {
+  implicit object Int_ extends PrimitiveValueType[Int] {
+    override def tp = Type.Name("Int")
+  }
+  implicit object Long_ extends PrimitiveValueType[Long] {
+    override def tp = Type.Name("Long")
+  }
+  implicit object String_ extends PrimitiveValueType[String] {
+    override def tp = Type.Name("String")
+  }
+  implicit val Dbl_ = new PrimitiveValueType[Double] {
+    override def tp = Type.Name("Double")
+  }
+}
+
 
 /** https://scalameta.org/docs/trees/guide.html
   * https://github.com/eed3si9n/ifdef/blob/main/plugin/src/main/scala/IfDefPlugin.scala
@@ -59,6 +80,8 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       .getOrElse(None)
 
   def generateSrc(): scala.meta.Source = {
+    import PrimitiveValueType._
+
     val queryDslClazz =
       Defn.Class(
         mods = List(Mod.Final(), Mod.Case()),
@@ -197,12 +220,12 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       else throw new Exception(s"Couldn't find or open file $indexPath")
     }.toEither
 
-  def mkFilterableParam[T: ClassTag](
+  def mkFilterableParam[T: PrimitiveValueType](
       indexFieldName: String,
       caseClassFieldName: String,
-    ): Term.Param = {
+    )(implicit ev: PrimitiveValueType[T]): Term.Param = {
     val termType = Type.Name("Filterable")
-    val termTypeParamType = inferTypeParam[T]
+    val termTypeParamType = ev.tp
 
     val rightHs =
       q"""
@@ -237,12 +260,12 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
     )
   }
 
-  def mkBothParam[T: ClassTag](
+  def mkBothParam[T: PrimitiveValueType](
       indexFieldName: String,
       caseClassFieldName: String,
-    ): Term.Param = {
+    )(implicit ev: PrimitiveValueType[T]): Term.Param = {
     val termType = Type.Name("Both")
-    val termTypeParamType = inferTypeParam[T]
+    val termTypeParamType = ev.tp
     val rightHs =
       q"""
           new ${scala.meta.Init(termType, termType, Seq.empty)}[${termTypeParamType}] {
@@ -280,12 +303,12 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
 
   }
 
-  def mkSortableParam[T: ClassTag](
+  def mkSortableParam[T: PrimitiveValueType](
       indexFieldName: String,
       caseClassFieldName: String,
-    ): Term.Param = {
+    )(implicit ev: PrimitiveValueType[T]): Term.Param = {
     val termType = Type.Name("Sortable")
-    val termTypeParamType = inferTypeParam[T]
+    val termTypeParamType =  ev.tp
 
     val rightHs =
       q"""
@@ -302,22 +325,6 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       decltpe = Some(Type.Apply(termType, Type.ArgClause(List(termTypeParamType)))),
       default = Some(rightHs),
     )
-  }
-
-  private def inferTypeParam[T: ClassTag]: Type.Name = {
-    val Str_ = classOf[String]
-    val Int_ = classOf[Int]
-    val Long_ = classOf[Long]
-    val Double_ = classOf[Double]
-
-    implicitly[ClassTag[T]].runtimeClass match {
-      case Str_ => Type.Name(Str_.getSimpleName)
-      case Int_ => Type.Name("Int")
-      case Long_ => Type.Name("Long")
-      case Double_ => Type.Name("Double")
-      case other =>
-        throw new IllegalArgumentException(s"Unsupported type: $other")
-    }
   }
 
   def writeFiles(
