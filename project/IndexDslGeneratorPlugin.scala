@@ -174,6 +174,56 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
         $gameDd
       }
     """*/
+
+    /*
+    val a = Type.Name("games_ht")
+    val b = Type.Name("games_at")
+    val c = Type.Name("games_stage")
+    val d = Type.Name("games_ts")
+    val e = Type.Name("games_winner")
+    val f = Type.Name("games_yy")
+    val g = Type.Name("games_mm")
+    val h = Type.Name("games_dd")
+
+    source"""
+      package query.dsl
+
+      import zio.schema.DeriveSchema
+      import zio.schema.Schema
+
+      final case class IndexSchema(
+        games_ht: String,
+        games_at: String,
+        games_stage: String,
+        games_ts: Long,
+        games_winner: String,
+        games_yy: Long,
+        games_mm: Long,
+        games_dd: Long,
+      )
+
+      object IndexSchema {
+        implicit val schema: Schema.CaseClass8.WithFields[
+          $a,
+          $b,
+          $c,
+          $d,
+          $e,
+          $f,
+          $g,
+          $h,
+          String,
+          String,
+          String,
+          Long,
+          String,
+          Long,
+          Long,
+          Long,
+          IndexSchema,
+        ] = DeriveSchema.gen[IndexSchema]
+      }
+    """*/
   }
 
   def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String])] =

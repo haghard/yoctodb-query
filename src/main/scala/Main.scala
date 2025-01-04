@@ -15,20 +15,18 @@ import scala.util.control.NonFatal
 object Program extends App {
   val logger = LoggerFactory.getLogger("app")
 
-  val dsl = SearchIndexQueryDsl()
-
+  val (ht, at, stage, gTs, winner, yy, mm, dd) = IndexAccessor[IndexSchema].columns
   val query =
     yocto
       .select
       .where(
         yocto.and(
-          dsl.stage.in(Set("season-18-19", "season-19-20")),
-          dsl.winner =:= "lal",
-          yocto.or(dsl.homeTeam =:= "lal", dsl.awayTeam =:= "lal"),
+          stage.in(Set("season-18-19", "season-19-20")),
+          winner =:= "lal",
+          yocto.or(ht =:= "lal", at =:= "lal"),
         )
       )
-      .orderBy(dsl.gameTs.desc())
-    // .limit(10)
+      .orderBy(gTs.desc)
 
   def loadIndex(): Try[V1Database] =
     Try {
@@ -75,3 +73,53 @@ object Program extends App {
   cl.await(10, TimeUnit.SECONDS)
 
 }
+
+/*
+edsl4
+object Terms {
+
+  sealed trait TermOps[T]
+  object Empty extends TermOps[Nothing]
+
+  trait FilterableOps[T] extends TermOps[T] {
+    def eq$(v: T): Unit
+    def notEq$(v: T): Unit
+  }
+
+  trait SetOps[T] extends TermOps[T] {
+    def in$(vs: Set[T]): Unit
+  }
+
+  trait TypedTermOps[T <: String & Singleton] {
+    type A
+    type Term <: TermOps[A]
+    def ops: Term
+  }
+
+  object TypedTermOps {
+
+    given name: TypedTermOps["name"] with {
+      type A = String
+      type Term = FilterableOps[A]
+      def ops: Term = new FilterableOps[A] {
+        def eq$(v: A): Unit = println(s"$v eq")
+        def notEq$(v: A): Unit = println(s"$v notEq")
+      }
+    }
+
+    given age: TypedTermOps["age"] with {
+      type A = Int
+      type Term = SetOps[Int]
+      def ops: Term = (vs: Set[Int]) => println(s"$vs in")
+    }
+  }
+
+  // end TypedTermOps
+
+  def term(name: String)(using TTC: TypedTermOps[name.type]): TTC.Term = TTC.ops
+
+  term("name").eq$("aa")
+  term("name").notEq$("aa")
+  term("age").in$(Set(1, 2))
+}
+ */

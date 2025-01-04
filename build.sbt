@@ -4,7 +4,9 @@ scalaVersion := "2.13.15"
 
 name := "yoctodb-query"
 
+val schemaV = "1.4.1"
 val AmmoniteVersion = "3.0.0"
+
 
 Compile / scalacOptions ++= Seq(
   "-Xsource:3-cross",
@@ -28,10 +30,15 @@ libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
     "ch.qos.logback"     %  "logback-classic" % "1.5.11",
+
+    "dev.zio" %% "zio-schema" % schemaV,
+    "dev.zio" %% "zio-schema-derivation" % schemaV,
+    "dev.zio" %% "zio-schema-json" % schemaV,
+
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
 
-Compile / sourceGenerators += genIndexDsl
+//Compile / sourceGenerators += genIndexDsl
 
 //test:run
 Test / sourceGenerators += Def.task {
