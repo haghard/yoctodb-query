@@ -171,28 +171,25 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
                   decltpe = Some(
                     value = Type.Apply(
                       tpe = Type.Select(
-                        qual = Term.Select(
-                          qual = Term.Select(
-                            qual = Term.Select(
-                              qual = Term.Name(value = "zio"),
-                              name = Term.Name(value = "schema"),
-                            ),
-                            name = Term.Name(value = "Schema"),
+                        Term.Select(
+                          Term.Select(
+                            Term.Select(Term.Name("zio"), Term.Name("schema")),
+                            Term.Name("Schema"),
                           ),
-                          name = Term.Name(value = "CaseClass8"),
+                          Term.Name("CaseClass8"),
                         ),
-                        name = Type.Name(value = "WithFields"),
+                        Type.Name("WithFields"),
                       ),
                       argClause = Type.ArgClause(
                         values = List(
-                          Lit.String(value = "games_ht"),
-                          Lit.String(value = "games_at"),
-                          Lit.String(value = "games_stage"),
-                          Lit.String(value = "games_ts"),
-                          Lit.String(value = "games_winner"),
-                          Lit.String(value = "games_yy"),
-                          Lit.String(value = "games_mm"),
-                          Lit.String(value = "games_dd"),
+                          Lit.String("games_ht"),
+                          Lit.String("games_at"),
+                          Lit.String("games_stage"),
+                          Lit.String("games_ts"),
+                          Lit.String("games_winner"),
+                          Lit.String("games_yy"),
+                          Lit.String("games_mm"),
+                          Lit.String("games_dd"),
                           Type.Name("String"),
                           Type.Name("String"),
                           Type.Name("String"),
@@ -228,8 +225,8 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
               Import(importers =
                 List(
                   Importer(
-                    ref = Term.Select(Term.Name(value = "zio"), Term.Name("schema")),
-                    importees = List(Importee.Name(name = Name.Indeterminate("DeriveSchema"))),
+                    ref = Term.Select(Term.Name("zio"), Term.Name("schema")),
+                    importees = List(Importee.Name(Name.Indeterminate("DeriveSchema"))),
                   )
                 )
               ),
