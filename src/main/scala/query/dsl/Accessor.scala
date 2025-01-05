@@ -2,7 +2,7 @@ package query.dsl
 
 import com.yandex.yoctodb.query.{ QueryBuilder, TermCondition }
 import com.yandex.yoctodb.util.{ UnsignedByteArray, UnsignedByteArrays }
-import query.dsl.YoctoProjection.mkBtsArr
+import query.dsl.YoctoAccessorBuilder.mkBtArr
 import zio.schema.{ Schema, TypeId }
 
 import scala.annotation.nowarn
@@ -18,27 +18,27 @@ object PrimitiveValueType {
 
 }
 
-trait IndexAccessor {
+trait Accessor {
   type Columns
   val columns: Columns
 
 }
 
-object IndexAccessor {
-  type Lens[F, S, A] = YoctoProjection.Lens[F, S, A]
-  type Prism[F, S, A] = YoctoProjection.Prism[F, S, A]
-  type Traversal[S, A] = YoctoProjection.Traversal[S, A]
+object Accessor {
+  type Lens[F, S, A] = YoctoAccessorBuilder.Lens[F, S, A]
+  type Prism[F, S, A] = YoctoAccessorBuilder.Prism[F, S, A]
+  type Traversal[S, A] = YoctoAccessorBuilder.Traversal[S, A]
 
-  type Aux[Columns0] = IndexAccessor {
+  type Aux[Columns0] = Accessor {
     type Columns = Columns0
   }
 
   def apply[A](
       implicit
       S: Schema[A]
-    ): IndexAccessor.Aux[S.Accessors[Lens, Prism, Traversal]] =
-    new IndexAccessor {
-      val accessorBuilder = YoctoProjection
+    ): Accessor.Aux[S.Accessors[Lens, Prism, Traversal]] =
+    new Accessor {
+      val accessorBuilder = YoctoAccessorBuilder
 
       override type Columns =
         S.Accessors[accessorBuilder.Lens, accessorBuilder.Prism, accessorBuilder.Traversal]
@@ -50,7 +50,7 @@ object IndexAccessor {
 
 }
 
-object YoctoProjection extends zio.schema.AccessorBuilder {
+object YoctoAccessorBuilder extends zio.schema.AccessorBuilder {
   type Lens[F, S, A] = TermConditionBuilder[S, A]
   type Prism[F, S, A] = Unit
   type Traversal[S, A] = Unit
@@ -69,7 +69,7 @@ object YoctoProjection extends zio.schema.AccessorBuilder {
   override def makeTraversal[S, A](collection: Schema.Collection[S, A], element: Schema[A]): Unit =
     ()
 
-  def mkBtsArr[T: PrimitiveValueType](
+  def mkBtArr[T: PrimitiveValueType](
       v: T
     )(implicit
       ev: PrimitiveValueType[T]
@@ -93,28 +93,28 @@ final case class TermConditionBuilder[S, A](
     )(implicit
       tp: PrimitiveValueType[A]
     ): TermCondition =
-    QueryBuilder.eq(path.head, mkBtsArr[A](that))
+    QueryBuilder.eq(path.head, mkBtArr[A](that))
 
   def in(
       that: scala.collection.immutable.Set[A]
     )(implicit
       tp: PrimitiveValueType[A]
     ): TermCondition =
-    QueryBuilder.in(path.head, that.toSeq.map(mkBtsArr[A](_)): _*)
+    QueryBuilder.in(path.head, that.toSeq.map(mkBtArr[A](_)): _*)
 
   def >>(
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
     ): TermCondition =
-    QueryBuilder.gt(path.head, mkBtsArr[A](that))
+    QueryBuilder.gt(path.head, mkBtArr[A](that))
 
   def <<(
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
     ): TermCondition =
-    QueryBuilder.lt(path.head, mkBtsArr[A](that))
+    QueryBuilder.lt(path.head, mkBtArr[A](that))
 
   def desc(
       implicit

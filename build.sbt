@@ -30,6 +30,7 @@ libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
     "ch.qos.logback"     %  "logback-classic" % "1.5.11",
+    "org.scalameta" %% "scalameta" % "4.12.3",
 
     "dev.zio" %% "zio-schema" % schemaV,
     "dev.zio" %% "zio-schema-derivation" % schemaV,
@@ -38,7 +39,7 @@ libraryDependencies ++=
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
 
-//Compile / sourceGenerators += genIndexDsl
+Compile / sourceGenerators += genIndexDsl
 
 //test:run
 Test / sourceGenerators += Def.task {

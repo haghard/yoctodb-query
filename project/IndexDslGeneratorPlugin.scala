@@ -35,14 +35,14 @@ object PrimitiveValueType {
   }
 }
 
-
 /** https://scalameta.org/docs/trees/guide.html
   * https://github.com/eed3si9n/ifdef/blob/main/plugin/src/main/scala/IfDefPlugin.scala
   */
 object IndexDslGeneratorPlugin extends AutoPlugin {
 
-  override def requires: sbt.Plugins = JvmPlugin
-  override def trigger = allRequirements
+  override def requires: JvmPlugin.type = sbt.plugins.JvmPlugin
+
+  override def trigger: sbt.PluginTrigger = allRequirements
 
   object autoImport {
     val genIndexDsl = taskKey[Seq[File]]("Generate Yoctodb index query dsl")
@@ -54,6 +54,8 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       writeFiles(genSource(managedSourceDir).toList, streams.value.log)
     }
   )
+
+  val name = "Index"
 
   val knownFilters =
     Set("games_yy", "games_dd", "games_mm", "games_stage", "games_ht", "games_at", "games_winner")
@@ -71,7 +73,7 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
               sorted.asScala.intersect(knownSorters) == knownSorters &&
               (filtered.asScala.intersect(knownFilters) == knownFilters)
           )
-            Some((generateSrc(), sourceManagedPath / "query" / "dsl" / "SearchIndexQueryDsl.scala"))
+            Some((generateSrc(), sourceManagedPath / "query" / "dsl" / "Index.scala"))
           else {
             println("Schema error !!!")
             None
@@ -81,83 +83,6 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
 
   def generateSrc(): scala.meta.Source = {
     import PrimitiveValueType._
-
-    val queryDslClazz =
-      Defn.Class(
-        mods = List(Mod.Final(), Mod.Case()),
-        name = Type.Name("SearchIndexQueryDsl"),
-        tparamClause = Type.ParamClause(List.empty),
-        ctor = Ctor.Primary(
-          mods = Nil,
-          name = Name.Anonymous(),
-          paramClauses = List(
-            Term.ParamClause(
-              List(
-                mkFilterableParam[String]("games_ht", "homeTeam"),
-                mkFilterableParam[String]("games_at", "awayTeam"),
-                mkFilterableParam[String]("games_stage", "stage"),
-                mkFilterableParam[String]("games_winner", "winner"),
-                // mkSortableParam[Long]("games_ts", "gameTs"),
-                mkBothParam[Long]("games_ts", "gameTs"),
-                mkBothParam[Int]("games_yy", "yy"),
-                mkBothParam[Int]("games_mm", "mm"),
-                mkBothParam[Int]("games_dd", "dd"),
-              )
-            )
-          ),
-        ),
-        templ = Template(
-          origin = scala.meta.trees.Origin.None,
-          early = Nil,
-          inits = Nil,
-          self = Self(
-            name = Name.Anonymous(),
-            decltpe = None,
-          ),
-          stats = Nil,
-        ),
-      )
-
-    val imp1 =
-      Import(importers =
-        List(
-          Importer(
-            Term.Select(
-              Term.Select(
-                Term.Select(Term.Name("com"), name = Term.Name("yandex")),
-                name = Term.Name("yoctodb"),
-              ),
-              name = Term.Name("query"),
-            ),
-            List(Importee.Wildcard()),
-          )
-        )
-      )
-
-    val imp2 =
-      Import(importers =
-        List(
-          Importer(
-            Term.Select(
-              Term.Select(
-                Term.Select(Term.Name("com"), name = Term.Name("yandex")),
-                name = Term.Name("yoctodb"),
-              ),
-              name = Term.Name("util"),
-            ),
-            List(Importee.Name(Name("UnsignedByteArrays"))),
-          )
-        )
-      )
-
-    Source(
-      stats = List(
-        Pkg(
-          ref = Term.Select(qual = Term.Name("query"), name = Term.Name("dsl")),
-          body = Pkg.Body(List(imp1, imp2, queryDslClazz)),
-        )
-      )
-    )
 
     /*source"""
       package query.dsl
@@ -175,22 +100,11 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
       }
     """*/
 
-    /*
-    val a = Type.Name("games_ht")
-    val b = Type.Name("games_at")
-    val c = Type.Name("games_stage")
-    val d = Type.Name("games_ts")
-    val e = Type.Name("games_winner")
-    val f = Type.Name("games_yy")
-    val g = Type.Name("games_mm")
-    val h = Type.Name("games_dd")
-
-    source"""
-      package query.dsl
-
-      import zio.schema.DeriveSchema
-      import zio.schema.Schema
-
+    // works in amm
+    /*source"""
+      package query.dsl;
+      import zio.schema.DeriveSchema;
+      import zio.schema.Schema;
       final case class IndexSchema(
         games_ht: String,
         games_at: String,
@@ -201,30 +115,140 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
         games_mm: Long,
         games_dd: Long,
       )
-
       object IndexSchema {
-        implicit val schema: Schema.CaseClass8.WithFields[
-          $a,
-          $b,
-          $c,
-          $d,
-          $e,
-          $f,
-          $g,
-          $h,
-          String,
-          String,
-          String,
-          Long,
-          String,
-          Long,
-          Long,
-          Long,
-          IndexSchema,
-        ] = DeriveSchema.gen[IndexSchema]
+        val schema: zio.schema.Schema.CaseClass8.WithFields["games_ht","games_at","games_stage","games_ts","games_winner","games_yy","games_mm","games_dd",String,String,String,Long,String,Long,Long,Long,query.dsl.IndexSchema] =
+        DeriveSchema.gen[IndexSchema]
       }
     """*/
+
+    val clazzDef =
+      Defn.Class(
+        mods = List(Mod.Final(), Mod.Case()),
+        name = Type.Name(name),
+        tparamClause = Type.ParamClause(Nil),
+        ctor = Ctor.Primary(
+          mods = List.empty,
+          name = Name(""),
+          paramClauses = List(
+            Term.ParamClause(
+              values = List(
+                mkParam[String]("games_ht"),
+                mkParam[String]("games_at"),
+                mkParam[String]("games_stage"),
+                mkParam[Long]("games_ts"),
+                mkParam[String]("games_winner"),
+                mkParam[Long]("games_yy"),
+                mkParam[Long]("games_mm"),
+                mkParam[Long]("games_dd"),
+              ),
+              mod = None,
+            )
+          ),
+        ),
+        templ = Template(
+          earlyClause = None,
+          inits = Nil,
+          body = Template.Body(selfOpt = None, stats = Nil),
+          derives = Nil,
+        ),
+      )
+
+    val valDef =
+      Defn.Object(
+        mods = Nil,
+        name = Term.Name(name),
+        templ = Template(
+          earlyClause = None,
+          inits = Nil,
+          body = Template.Body(
+            selfOpt = None,
+            stats = List(
+              Defn
+                .Val
+                .apply(
+                  mods = List(Mod.Implicit()),
+                  pats = List(Pat.Var(Term.Name(value = "schema"))),
+                  decltpe = Some(
+                    value = Type.Apply(
+                      tpe = Type.Select(
+                        qual = Term.Select(
+                          qual = Term.Select(
+                            qual = Term.Select(
+                              qual = Term.Name(value = "zio"),
+                              name = Term.Name(value = "schema"),
+                            ),
+                            name = Term.Name(value = "Schema"),
+                          ),
+                          name = Term.Name(value = "CaseClass8"),
+                        ),
+                        name = Type.Name(value = "WithFields"),
+                      ),
+                      argClause = Type.ArgClause(
+                        values = List(
+                          Lit.String(value = "games_ht"),
+                          Lit.String(value = "games_at"),
+                          Lit.String(value = "games_stage"),
+                          Lit.String(value = "games_ts"),
+                          Lit.String(value = "games_winner"),
+                          Lit.String(value = "games_yy"),
+                          Lit.String(value = "games_mm"),
+                          Lit.String(value = "games_dd"),
+                          Type.Name("String"),
+                          Type.Name("String"),
+                          Type.Name("String"),
+                          Type.Name("Long"),
+                          Type.Name("String"),
+                          Type.Name("Long"),
+                          Type.Name("Long"),
+                          Type.Name("Long"),
+                          Type.Select(
+                            Term.Select(Term.Name("query"), Term.Name("dsl")),
+                            Type.Name(name),
+                          ),
+                        )
+                      ),
+                    )
+                  ),
+                  rhs = Term.ApplyType(
+                    fun = Term.Select(Term.Name("DeriveSchema"), Term.Name("gen")),
+                    targClause = Type.ArgClause(List(Type.Name(name))),
+                  ),
+                )
+            ),
+          ),
+        ),
+      )
+
+    Source(
+      stats = List(
+        Pkg(
+          ref = Term.Select(Term.Name("query"), Term.Name("dsl")),
+          body = Pkg.Body(
+            List(
+              Import(importers =
+                List(
+                  Importer(
+                    ref = Term.Select(Term.Name(value = "zio"), Term.Name("schema")),
+                    importees = List(Importee.Name(name = Name.Indeterminate("DeriveSchema"))),
+                  )
+                )
+              ),
+              clazzDef,
+              valDef,
+            )
+          ),
+        )
+      )
+    )
   }
+
+  def mkParam[T: PrimitiveValueType](caseClassFieldName: String): Term.Param =
+    Term.Param(
+      mods = List.empty,
+      name = Term.Name(caseClassFieldName),
+      decltpe = Some(implicitly[PrimitiveValueType[T]].tp),
+      default = None,
+    )
 
   def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String])] =
     Try {
@@ -273,7 +297,9 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
   def mkFilterableParam[T: PrimitiveValueType](
       indexFieldName: String,
       caseClassFieldName: String,
-    )(implicit ev: PrimitiveValueType[T]): Term.Param = {
+    )(implicit
+      ev: PrimitiveValueType[T]
+    ): Term.Param = {
     val termType = Type.Name("Filterable")
     val termTypeParamType = ev.tp
 
@@ -313,7 +339,9 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
   def mkBothParam[T: PrimitiveValueType](
       indexFieldName: String,
       caseClassFieldName: String,
-    )(implicit ev: PrimitiveValueType[T]): Term.Param = {
+    )(implicit
+      ev: PrimitiveValueType[T]
+    ): Term.Param = {
     val termType = Type.Name("Both")
     val termTypeParamType = ev.tp
     val rightHs =
@@ -356,9 +384,11 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
   def mkSortableParam[T: PrimitiveValueType](
       indexFieldName: String,
       caseClassFieldName: String,
-    )(implicit ev: PrimitiveValueType[T]): Term.Param = {
+    )(implicit
+      ev: PrimitiveValueType[T]
+    ): Term.Param = {
     val termType = Type.Name("Sortable")
-    val termTypeParamType =  ev.tp
+    val termTypeParamType = ev.tp
 
     val rightHs =
       q"""
