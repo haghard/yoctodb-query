@@ -61,17 +61,16 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
     Set("games_yy", "games_dd", "games_mm", "games_stage", "games_ht", "games_at", "games_winner")
 
   val knownSorters =
-    Set("games_yy", "games_dd", "games_mm", "games_ts")
+    Set("games_ts")
 
   def genSource(
       sourceManagedPath: java.io.File
     ): Option[(scala.meta.Source, java.io.File)] =
     loadIndex()
-      .map {
-        case (sorted, filtered) =>
+      .map { case (sorted, filtered) =>
           if (
-              sorted.asScala.intersect(knownSorters) == knownSorters &&
-              (filtered.asScala.intersect(knownFilters) == knownFilters)
+              sorted.contains("games_ts") &&
+                (filtered.asScala.intersect(knownFilters) == knownFilters)
           )
             Some((generateSrc(), sourceManagedPath / "query" / "dsl" / "Index.scala"))
           else {
@@ -99,28 +98,6 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
         $gameDd
       }
     """*/
-
-    // works in amm
-    /*source"""
-      package query.dsl;
-      import zio.schema.DeriveSchema;
-      import zio.schema.Schema;
-      final case class IndexSchema(
-        games_ht: String,
-        games_at: String,
-        games_stage: String,
-        games_ts: Long,
-        games_winner: String,
-        games_yy: Long,
-        games_mm: Long,
-        games_dd: Long,
-      )
-      object IndexSchema {
-        val schema: zio.schema.Schema.CaseClass8.WithFields["games_ht","games_at","games_stage","games_ts","games_winner","games_yy","games_mm","games_dd",String,String,String,Long,String,Long,Long,Long,query.dsl.IndexSchema] =
-        DeriveSchema.gen[IndexSchema]
-      }
-    """*/
-
     val clazzDef =
       Defn.Class(
         mods = List(Mod.Final(), Mod.Case()),

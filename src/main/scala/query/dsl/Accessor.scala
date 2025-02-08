@@ -1,6 +1,6 @@
 package query.dsl
 
-import com.yandex.yoctodb.query.{ QueryBuilder, TermCondition }
+import com.yandex.yoctodb.query.{ Condition, QueryBuilder }
 import com.yandex.yoctodb.util.{ UnsignedByteArray, UnsignedByteArrays }
 import query.dsl.YoctoAccessorBuilder.mkBtArr
 import zio.schema.{ Schema, TypeId }
@@ -92,28 +92,35 @@ final case class TermConditionBuilder[S, A](
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
-    ): TermCondition =
+    ): Condition =
     QueryBuilder.eq(path.head, mkBtArr[A](that))
+
+  def =!=(
+      that: A
+    )(implicit
+      tp: PrimitiveValueType[A]
+    ): Condition =
+    QueryBuilder.not(QueryBuilder.eq(path.head, mkBtArr[A](that)))
 
   def in(
       that: scala.collection.immutable.Set[A]
     )(implicit
       tp: PrimitiveValueType[A]
-    ): TermCondition =
+    ): Condition =
     QueryBuilder.in(path.head, that.toSeq.map(mkBtArr[A](_)): _*)
 
   def >>(
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
-    ): TermCondition =
+    ): Condition =
     QueryBuilder.gt(path.head, mkBtArr[A](that))
 
   def <<(
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
-    ): TermCondition =
+    ): Condition =
     QueryBuilder.lt(path.head, mkBtArr[A](that))
 
   def desc(

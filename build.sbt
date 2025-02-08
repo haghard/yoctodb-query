@@ -1,12 +1,11 @@
 import IndexDslGeneratorPlugin.autoImport._
 
-scalaVersion := "2.13.15"
+scalaVersion := "2.13.16"
 
 name := "yoctodb-query"
 
-val schemaV = "1.4.1"
-val AmmoniteVersion = "3.0.0"
-
+val schemaV = "1.6.1"
+val AmmoniteVersion = "3.0.1"
 
 Compile / scalacOptions ++= Seq(
   "-Xsource:3-cross",
