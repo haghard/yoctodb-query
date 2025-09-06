@@ -50,6 +50,8 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
   }
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
+    //Compile / sourceGenerators += autoImport.genIndexDsl
+
     autoImport.genIndexDsl := {
       val managedSourceDir = (Compile / sourceManaged).value
       writeFiles(genSource(managedSourceDir).toList, streams.value.log)
@@ -233,7 +235,7 @@ object IndexDslGeneratorPlugin extends AutoPlugin {
         val reader = DatabaseFormat.getCurrent().getDatabaseReader()
         val db: V1Database = reader.from(Buffer.mmap(indexFile, false)).asInstanceOf[V1Database]
         println(
-          s"★ ★ ★ Index [${indexFile.length() / (1024 * 1024)}MB / NumOfDocs: ${db.getDocumentCount()} ] ★ ★ ★\n"
+          s"★ ★ ★ Loaded index from:${indexFile} [${indexFile.length() / (1024 * 1024)}MB / NumOfDocs: ${db.getDocumentCount()} ] ★ ★ ★\n"
         )
 
         val sortersField = db.getClass().getDeclaredField("sorters")

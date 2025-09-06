@@ -24,11 +24,11 @@ object Program extends App {
         yocto.and(
           // stage.in(Set("season-18-19", "season-19-20")),
           // stage.in(Set("season-23-24", "season-24-25")),
-          stage.in(Set("season-24-25")),
+          stage.in(Set("playoff-24-25")),
           // winner.=!=("lal"),
-          winner.=:=("lal"),
-          // yocto.or(ht =:= "okc", at =:= "okc"),
-          yocto.or(ht =:= "lal", at =:= "lal"),
+          // winner.=:=("lal"),
+          yocto.or(ht =:= "okc", at =:= "okc"),
+          // yocto.or(ht =:= "lal", at =:= "lal"),
         )
       )
       .orderBy(gTs.desc)

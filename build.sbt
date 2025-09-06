@@ -4,13 +4,15 @@ scalaVersion := "2.13.16"
 
 name := "yoctodb-query"
 
-val schemaV = "1.7.2"
+val schemaV = "1.7.4"
 val AmmoniteVersion = "3.0.2"
+
+lazy val javaVersion = sys.props("java.specification.version")
 
 Compile / scalacOptions ++= Seq(
   "-Xsource:3-cross",
-  "-target:24",
-  "-release:24",
+  s"-target:$javaVersion",
+  s"-release:$javaVersion",
   "-Ylog-classpath",
   "-deprecation",
   "-feature",
@@ -31,7 +33,7 @@ libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
     "ch.qos.logback"     %  "logback-classic" % "1.5.18",
-    "org.scalameta"      %% "scalameta" % "4.13.6",
+    "org.scalameta"      %% "scalameta" % "4.13.9",
 
     "dev.zio" %% "zio-schema" % schemaV,
     "dev.zio" %% "zio-schema-derivation" % schemaV,
@@ -42,8 +44,10 @@ libraryDependencies ++=
 
 Compile / sourceGenerators += genIndexDsl
 
-javacOptions ++= Seq("-source", "24", "-target", "24")
-javaHome := Some(file("/Library/Java/JavaVirtualMachines/jdk-24.jdk/Contents/Home/"))
+javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion)
+javaHome := Some(file(s"/Library/Java/JavaVirtualMachines/jdk-$javaVersion.jdk/Contents/Home/"))
+
+enablePlugins(IndexDslGeneratorPlugin)
 
 //test:run
 Test / sourceGenerators += Def.task {
@@ -55,3 +59,9 @@ Test / sourceGenerators += Def.task {
 
 addCommandAlias("c", "compile")
 addCommandAlias("r", "reload")
+
+//shellPrompt := { state => s"${javaVersion}> " }
+
+//++2.13.16
+//show javacOptions
+//show scalacOptions
