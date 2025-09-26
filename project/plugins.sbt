@@ -3,7 +3,7 @@ addSbtPlugin("org.scalameta"      %   "sbt-scalafmt"    % "2.5.5")
 
 libraryDependencies ++=
   Seq(
-    "org.scalameta" %% "scalameta" % "4.13.9",
+    "org.scalameta" %% "scalameta" % "4.13.10",
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
   )
 
