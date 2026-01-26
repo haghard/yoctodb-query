@@ -1,11 +1,11 @@
 import IndexDslGeneratorPlugin.autoImport._
 
-scalaVersion := "2.13.16"
+scalaVersion := "2.13.18"
 
 name := "yoctodb-query"
 
-val schemaV = "1.7.5"
-val AmmoniteVersion = "3.0.2"
+val schemaV = "1.7.6"
+val AmmoniteVersion = "3.0.6"
 
 lazy val javaVersion = sys.props("java.specification.version")
 
@@ -32,8 +32,8 @@ scalafmtOnCompile := true
 libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
-    "ch.qos.logback"     %  "logback-classic" % "1.5.18",
-    "org.scalameta"      %% "scalameta" % "4.13.10",
+    "ch.qos.logback"     %  "logback-classic" % "1.5.26",
+    "org.scalameta"      %% "scalameta" % "4.14.5",
 
     "dev.zio" %% "zio-schema" % schemaV,
     "dev.zio" %% "zio-schema-derivation" % schemaV,
@@ -62,6 +62,6 @@ addCommandAlias("r", "reload")
 
 //shellPrompt := { state => s"${javaVersion}> " }
 
-//++2.13.16
+//++2.13.18
 //show javacOptions
 //show scalacOptions
