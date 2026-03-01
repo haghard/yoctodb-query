@@ -2,7 +2,7 @@ package query.dsl
 
 import com.yandex.yoctodb.query.{ Condition, QueryBuilder }
 import com.yandex.yoctodb.util.{ UnsignedByteArray, UnsignedByteArrays }
-import query.dsl.YoctoAccessorBuilder.mkBtArr
+import query.dsl.YoctoAccessorBuilder.mkBtsArr
 import zio.schema.{ Schema, TypeId }
 
 import scala.annotation.nowarn
@@ -69,7 +69,7 @@ object YoctoAccessorBuilder extends zio.schema.AccessorBuilder {
   override def makeTraversal[S, A](collection: Schema.Collection[S, A], element: Schema[A]): Unit =
     ()
 
-  def mkBtArr[T: PrimitiveValueType](
+  def mkBtsArr[T: PrimitiveValueType](
       v: T
     )(implicit
       ev: PrimitiveValueType[T]
@@ -93,35 +93,35 @@ final case class TermConditionBuilder[S, A](
     )(implicit
       tp: PrimitiveValueType[A]
     ): Condition =
-    QueryBuilder.eq(path.head, mkBtArr[A](that))
+    QueryBuilder.eq(path.head, mkBtsArr[A](that))
 
   def =!=(
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
     ): Condition =
-    QueryBuilder.not(QueryBuilder.eq(path.head, mkBtArr[A](that)))
+    QueryBuilder.not(QueryBuilder.eq(path.head, mkBtsArr[A](that)))
 
   def in(
       that: scala.collection.immutable.Set[A]
     )(implicit
       tp: PrimitiveValueType[A]
     ): Condition =
-    QueryBuilder.in(path.head, that.toSeq.map(mkBtArr[A](_)): _*)
+    QueryBuilder.in(path.head, that.toSeq.map(mkBtsArr[A](_)): _*)
 
   def >>(
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
     ): Condition =
-    QueryBuilder.gt(path.head, mkBtArr[A](that))
+    QueryBuilder.gt(path.head, mkBtsArr[A](that))
 
   def <<(
       that: A
     )(implicit
       tp: PrimitiveValueType[A]
     ): Condition =
-    QueryBuilder.lt(path.head, mkBtArr[A](that))
+    QueryBuilder.lt(path.head, mkBtsArr[A](that))
 
   def desc(
       implicit

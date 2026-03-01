@@ -4,8 +4,8 @@ scalaVersion := "2.13.18"
 
 name := "yoctodb-query"
 
-val schemaV = "1.7.6"
-val AmmoniteVersion = "3.0.6"
+val schemaV = "1.8.1"
+val AmmoniteVersion = "3.0.8"
 
 lazy val javaVersion = sys.props("java.specification.version")
 
@@ -32,8 +32,8 @@ scalafmtOnCompile := true
 libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
-    "ch.qos.logback"     %  "logback-classic" % "1.5.26",
-    "org.scalameta"      %% "scalameta" % "4.14.5",
+    "ch.qos.logback"     %  "logback-classic" % "1.5.32",
+    "org.scalameta"      %% "scalameta" % "4.15.2",
 
     "dev.zio" %% "zio-schema" % schemaV,
     "dev.zio" %% "zio-schema-derivation" % schemaV,
