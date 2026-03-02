@@ -1,8 +1,6 @@
-import IndexDslGeneratorPlugin.autoImport._
-
-scalaVersion := "2.13.18"
 
 name := "yoctodb-query"
+scalaVersion := "2.13.18"
 
 val schemaV = "1.8.1"
 val AmmoniteVersion = "3.0.8"
@@ -42,12 +40,12 @@ libraryDependencies ++=
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
 
-Compile / sourceGenerators += genIndexDsl
+Compile / sourceGenerators += ZioSchemaIndexGeneratorPlugin.autoImport.genIndexDsl
 
 javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion)
 javaHome := Some(file(s"/Library/Java/JavaVirtualMachines/jdk-$javaVersion.jdk/Contents/Home/"))
 
-enablePlugins(IndexDslGeneratorPlugin)
+enablePlugins(ZioSchemaIndexGeneratorPlugin)
 
 //test:run
 Test / sourceGenerators += Def.task {

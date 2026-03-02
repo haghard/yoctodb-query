@@ -2,7 +2,7 @@ package query.dsl
 
 import com.yandex.yoctodb.query.{ Condition, QueryBuilder }
 import com.yandex.yoctodb.util.{ UnsignedByteArray, UnsignedByteArrays }
-import query.dsl.YoctoAccessorBuilder.mkBtsArr
+import query.dsl.YoctoDbAccessorBuilder.mkBtsArr
 import zio.schema.{ Schema, TypeId }
 
 import scala.annotation.nowarn
@@ -25,9 +25,9 @@ trait Accessor {
 }
 
 object Accessor {
-  type Lens[F, S, A] = YoctoAccessorBuilder.Lens[F, S, A]
-  type Prism[F, S, A] = YoctoAccessorBuilder.Prism[F, S, A]
-  type Traversal[S, A] = YoctoAccessorBuilder.Traversal[S, A]
+  type Lens[F, S, A] = YoctoDbAccessorBuilder.Lens[F, S, A]
+  type Prism[F, S, A] = YoctoDbAccessorBuilder.Prism[F, S, A]
+  type Traversal[S, A] = YoctoDbAccessorBuilder.Traversal[S, A]
 
   type Aux[Columns0] = Accessor {
     type Columns = Columns0
@@ -38,7 +38,7 @@ object Accessor {
       S: Schema[A]
     ): Accessor.Aux[S.Accessors[Lens, Prism, Traversal]] =
     new Accessor {
-      val accessorBuilder = YoctoAccessorBuilder
+      val accessorBuilder = YoctoDbAccessorBuilder
 
       override type Columns =
         S.Accessors[accessorBuilder.Lens, accessorBuilder.Prism, accessorBuilder.Traversal]
@@ -50,7 +50,7 @@ object Accessor {
 
 }
 
-object YoctoAccessorBuilder extends zio.schema.AccessorBuilder {
+object YoctoDbAccessorBuilder extends zio.schema.AccessorBuilder {
   type Lens[F, S, A] = TermConditionBuilder[S, A]
   type Prism[F, S, A] = Unit
   type Traversal[S, A] = Unit
@@ -86,8 +86,7 @@ final case class TermConditionBuilder[S, A](
     schema: Schema.Record[S],
     path: List[String],
     sums: Map[String, TypeId] = Map.empty,
-  ) {
-  self =>
+  ) { self =>
   def =:=(
       that: A
     )(implicit

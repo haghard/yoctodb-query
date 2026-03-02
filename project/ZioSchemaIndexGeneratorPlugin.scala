@@ -35,11 +35,7 @@ object PrimitiveValueType {
   }
 }
 
-/** https://scalameta.org/docs/trees/guide.html
- * https://github.com/scalameta/ast-explorer
-  * https://github.com/eed3si9n/ifdef/blob/main/plugin/src/main/scala/IfDefPlugin.scala
-  */
-object IndexDslGeneratorPlugin extends AutoPlugin {
+object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
 
   override def requires: JvmPlugin.type = sbt.plugins.JvmPlugin
 
