@@ -1,3 +1,4 @@
+import com.typesafe.config.ConfigFactory
 import com.yandex.yoctodb.DatabaseFormat
 import sbt.AutoPlugin
 import sbt.plugins.JvmPlugin
@@ -13,7 +14,7 @@ import sbt.internal.util.ManagedLogger
 
 import java.nio.file.Paths
 import scala.annotation.implicitNotFound
-import scala.jdk.CollectionConverters.asScalaSetConverter
+import scala.jdk.CollectionConverters.*
 
 @implicitNotFound("Primitive type ${T} isn't supported")
 sealed trait PrimitiveValueType[T] {
@@ -21,21 +22,40 @@ sealed trait PrimitiveValueType[T] {
 }
 
 object PrimitiveValueType {
+
   implicit object Int_ extends PrimitiveValueType[Int] {
     override def tp = Type.Name("Int")
   }
+
   implicit object Long_ extends PrimitiveValueType[Long] {
     override def tp = Type.Name("Long")
   }
+
   implicit object String_ extends PrimitiveValueType[String] {
     override def tp = Type.Name("String")
   }
-  implicit val Dbl_ = new PrimitiveValueType[Double] {
+
+  implicit object Double_ extends PrimitiveValueType[Double] {
     override def tp = Type.Name("Double")
   }
+
+  def fromStr(columnType: String): Option[PrimitiveValueType[?]] =
+    columnType match {
+      case "String" =>
+        Some(String_)
+      case "Long" =>
+        Some(Long_)
+      case "Int" =>
+        Some(Int_)
+      case "Double" =>
+        Some(Double_)
+      case _ =>
+        None
+    }
 }
 
 object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
+  private val fileName = "DeriveSchemaIndex"
 
   override def requires: JvmPlugin.type = sbt.plugins.JvmPlugin
 
@@ -54,69 +74,68 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
     }
   )
 
-  val name = "Index"
-
-  val knownFilters =
-    Set("games_yy", "games_dd", "games_mm", "games_stage", "games_ht", "games_at", "games_winner")
-
-  val knownSorters =
-    Set("games_ts")
 
   def genSource(
       sourceManagedPath: java.io.File
     ): Option[(scala.meta.Source, java.io.File)] =
     loadIndex()
       .map { case (sorted, filtered) =>
-          if (
-              sorted.contains("games_ts") &&
-                (filtered.asScala.intersect(knownFilters) == knownFilters)
-          )
-            Some((generateSrc(), sourceManagedPath / "query" / "dsl" / "Index.scala"))
-          else {
-            println("Schema error !!!")
-            None
-          }
+        Some((generateSource(), sourceManagedPath / "query" / "dsl" / (fileName + ".scala")))
       }
       .getOrElse(None)
 
-  def generateSrc(): scala.meta.Source = {
-    import PrimitiveValueType._
+  def mkTypedParam(columnName: String, typeTag: PrimitiveValueType[?]) =
+    typeTag match {
+      case PrimitiveValueType.Int_ =>
+        mkParam[Int](columnName)
+      case PrimitiveValueType.Long_ =>
+        mkParam[Long](columnName)
+      case PrimitiveValueType.String_ =>
+        mkParam[String](columnName)
+      case PrimitiveValueType.Double_ =>
+        mkParam[Double](columnName)
+    }
 
-    /*source"""
-      package query.dsl
-      import com.yandex.yoctodb.query._
-      import com.yandex.yoctodb.util.UnsignedByteArrays
-      final class SearchIndexQueryDsl {
-        $homeTeam
-        $awayTeam
-        $gameStage
-        $gameWinner
-        $gameTs
-        $gameYyF
-        $gameMm
-        $gameDd
-      }
-    """*/
+
+  def generateSource(): scala.meta.Source = {
+    val config = ConfigFactory.parseFile(new File("./src/main/resources/application.conf"))
+
+    val filters = config.getObjectList("filters").asScala.map { item =>
+      val it    = item.entrySet.iterator
+      val entry = it.next()
+      val columnName   = entry.getKey()
+      val columnType   = entry.getValue().render.replace("\"", "")
+      (columnName, PrimitiveValueType.fromStr(columnType).getOrElse(throw new Exception(s"Filter($columnName) definition error")))
+    }
+
+    val sorters = config.getObjectList("sorters").asScala.map { item =>
+      val it    = item.entrySet.iterator
+      val entry = it.next()
+      val columnName   = entry.getKey()
+      val columnType   = entry.getValue().render.replace("\"", "")
+      (columnName, PrimitiveValueType.fromStr(columnType).getOrElse(throw new Exception(s"Sorter($columnName) definition error")))
+    }
+
+    val filtersAndSorters = (filters ++ sorters).toList
+
+    val typedParams = filtersAndSorters.map { case (columnName, typeTag) =>
+      mkTypedParam(columnName, typeTag)
+    }
+
+    val literals =
+      filtersAndSorters.map { case (name, _) => Lit.String(name) } ++ filtersAndSorters.map { case (_, tt) => tt.tp }
+
     val clazzDef =
       Defn.Class(
         mods = List(Mod.Final(), Mod.Case()),
-        name = Type.Name(name),
+        name = Type.Name(fileName),
         tparamClause = Type.ParamClause(Nil),
         ctor = Ctor.Primary(
           mods = List.empty,
           name = Name(""),
           paramClauses = List(
             Term.ParamClause(
-              values = List(
-                mkParam[String]("games_ht"),
-                mkParam[String]("games_at"),
-                mkParam[String]("games_stage"),
-                mkParam[Long]("games_ts"),
-                mkParam[String]("games_winner"),
-                mkParam[Long]("games_yy"),
-                mkParam[Long]("games_mm"),
-                mkParam[Long]("games_dd"),
-              ),
+              values = typedParams,
               mod = None,
             )
           ),
@@ -132,7 +151,7 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
     val valDef =
       Defn.Object(
         mods = Nil,
-        name = Term.Name(name),
+        name = Term.Name(fileName),
         templ = Template(
           earlyClause = None,
           inits = Nil,
@@ -152,39 +171,23 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
                             Term.Select(Term.Name("zio"), Term.Name("schema")),
                             Term.Name("Schema"),
                           ),
-                          Term.Name("CaseClass8"),
+                          Term.Name("CaseClass" + filtersAndSorters.size.toString),
                         ),
                         Type.Name("WithFields"),
                       ),
                       argClause = Type.ArgClause(
-                        values = List(
-                          Lit.String("games_ht"),
-                          Lit.String("games_at"),
-                          Lit.String("games_stage"),
-                          Lit.String("games_ts"),
-                          Lit.String("games_winner"),
-                          Lit.String("games_yy"),
-                          Lit.String("games_mm"),
-                          Lit.String("games_dd"),
-                          Type.Name("String"),
-                          Type.Name("String"),
-                          Type.Name("String"),
-                          Type.Name("Long"),
-                          Type.Name("String"),
-                          Type.Name("Long"),
-                          Type.Name("Long"),
-                          Type.Name("Long"),
+                        values = literals ++ List(
                           Type.Select(
                             Term.Select(Term.Name("query"), Term.Name("dsl")),
-                            Type.Name(name),
-                          ),
+                            Type.Name(fileName),
+                          )
                         )
                       ),
                     )
                   ),
                   rhs = Term.ApplyType(
                     fun = Term.Select(Term.Name("DeriveSchema"), Term.Name("gen")),
-                    targClause = Type.ArgClause(List(Type.Name(name))),
+                    targClause = Type.ArgClause(List(Type.Name(fileName))),
                   ),
                 )
             ),
@@ -267,7 +270,7 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
       else throw new Exception(s"Couldn't find or open file $indexPath")
     }.toEither
 
-  def mkFilterableParam[T: PrimitiveValueType](
+  /*def mkFilterableParam[T: PrimitiveValueType](
       indexFieldName: String,
       caseClassFieldName: String,
     )(implicit
@@ -378,7 +381,7 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
       decltpe = Some(Type.Apply(termType, Type.ArgClause(List(termTypeParamType)))),
       default = Some(rightHs),
     )
-  }
+  }*/
 
   def writeFiles(
       outputs: List[(scala.meta.Source, java.io.File)],
