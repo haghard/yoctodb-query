@@ -90,35 +90,35 @@ final case class TermConditionBuilder[S, A](
   def =:=(
       that: A
     )(implicit
-      tp: PrimitiveValueType[A]
+      tt: PrimitiveValueType[A]
     ): Condition =
     QueryBuilder.eq(path.head, mkBtsArr[A](that))
 
   def =!=(
       that: A
     )(implicit
-      tp: PrimitiveValueType[A]
+      tt: PrimitiveValueType[A]
     ): Condition =
     QueryBuilder.not(QueryBuilder.eq(path.head, mkBtsArr[A](that)))
 
   def in(
       that: scala.collection.immutable.Set[A]
     )(implicit
-      tp: PrimitiveValueType[A]
+      tt: PrimitiveValueType[A]
     ): Condition =
     QueryBuilder.in(path.head, that.toSeq.map(mkBtsArr[A](_)): _*)
 
   def >>(
       that: A
     )(implicit
-      tp: PrimitiveValueType[A]
+      tt: PrimitiveValueType[A]
     ): Condition =
     QueryBuilder.gt(path.head, mkBtsArr[A](that))
 
   def <<(
       that: A
     )(implicit
-      tp: PrimitiveValueType[A]
+      tt: PrimitiveValueType[A]
     ): Condition =
     QueryBuilder.lt(path.head, mkBtsArr[A](that))
 

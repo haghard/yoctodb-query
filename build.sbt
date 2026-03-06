@@ -2,7 +2,7 @@
 name := "yoctodb-query"
 scalaVersion := "2.13.18"
 
-val schemaV = "1.8.1"
+val schemaV = "1.8.2"
 val AmmoniteVersion = "3.0.8"
 
 lazy val javaVersion = sys.props("java.specification.version")

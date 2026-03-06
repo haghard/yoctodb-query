@@ -1,4 +1,4 @@
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import com.yandex.yoctodb.DatabaseFormat
 import sbt.AutoPlugin
 import sbt.plugins.JvmPlugin
@@ -17,41 +17,21 @@ import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters.*
 
 @implicitNotFound("Primitive type ${T} isn't supported")
-sealed trait PrimitiveValueType[T] {
-  def tp: Type.Name
-}
+sealed abstract class PrimitiveValueType[T](val typeName: Type.Name)
 
 object PrimitiveValueType {
+  implicit object Int_ extends PrimitiveValueType[Int](Type.Name("Int"))
+  implicit object Long_ extends PrimitiveValueType[Long](Type.Name("Long"))
+  implicit object String_ extends PrimitiveValueType[String](Type.Name("String"))
 
-  implicit object Int_ extends PrimitiveValueType[Int] {
-    override def tp = Type.Name("Int")
-  }
-
-  implicit object Long_ extends PrimitiveValueType[Long] {
-    override def tp = Type.Name("Long")
-  }
-
-  implicit object String_ extends PrimitiveValueType[String] {
-    override def tp = Type.Name("String")
-  }
-
-  implicit object Double_ extends PrimitiveValueType[Double] {
-    override def tp = Type.Name("Double")
-  }
+  private val terms = Map(
+    Int_.typeName.value -> Some(Int_),
+    Long_.typeName.value -> Some(Long_),
+    String_.typeName.value -> Some(String_),
+  )
 
   def fromStr(columnType: String): Option[PrimitiveValueType[?]] =
-    columnType match {
-      case "String" =>
-        Some(String_)
-      case "Long" =>
-        Some(Long_)
-      case "Int" =>
-        Some(Int_)
-      case "Double" =>
-        Some(Double_)
-      case _ =>
-        None
-    }
+    terms.getOrElse(columnType, None)
 }
 
 object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
@@ -70,21 +50,31 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
 
     autoImport.genIndexDsl := {
       val managedSourceDir = (Compile / sourceManaged).value
-      writeFiles(genSource(managedSourceDir).toList, streams.value.log)
+      val config = ConfigFactory.parseFile(new File("./src/main/resources/application.conf"))
+      writeFiles(genSource(config, managedSourceDir).toList, streams.value.log)
     }
   )
 
-
   def genSource(
+      config: Config,
       sourceManagedPath: java.io.File
     ): Option[(scala.meta.Source, java.io.File)] =
     loadIndex()
       .map { case (sorted, filtered) =>
-        Some((generateSource(), sourceManagedPath / "query" / "dsl" / (fileName + ".scala")))
+        Some((generateSource(config), sourceManagedPath / "query" / "dsl" / (fileName + ".scala")))
       }
       .getOrElse(None)
 
-  def mkTypedParam(columnName: String, typeTag: PrimitiveValueType[?]) =
+  def mkTypedParam(columnName: String, typeTag: PrimitiveValueType[?]) = {
+
+    def mkParam[T: PrimitiveValueType](caseClassFieldName: String): Term.Param =
+      Term.Param(
+        mods = List.empty,
+        name = Term.Name(caseClassFieldName),
+        decltpe = Some(implicitly[PrimitiveValueType[T]].typeName),
+        default = None,
+      )
+
     typeTag match {
       case PrimitiveValueType.Int_ =>
         mkParam[Int](columnName)
@@ -92,14 +82,11 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
         mkParam[Long](columnName)
       case PrimitiveValueType.String_ =>
         mkParam[String](columnName)
-      case PrimitiveValueType.Double_ =>
-        mkParam[Double](columnName)
     }
+  }
 
 
-  def generateSource(): scala.meta.Source = {
-    val config = ConfigFactory.parseFile(new File("./src/main/resources/application.conf"))
-
+  def generateSource(config: Config): scala.meta.Source = {
     val filters = config.getObjectList("filters").asScala.map { item =>
       val it    = item.entrySet.iterator
       val entry = it.next()
@@ -123,7 +110,7 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
     }
 
     val literals =
-      filtersAndSorters.map { case (name, _) => Lit.String(name) } ++ filtersAndSorters.map { case (_, tt) => tt.tp }
+      filtersAndSorters.map { case (name, _) => Lit.String(name) } ++ filtersAndSorters.map { case (_, tt) => tt.typeName }
 
     val clazzDef =
       Defn.Class(
@@ -218,14 +205,6 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
     )
   }
 
-  def mkParam[T: PrimitiveValueType](caseClassFieldName: String): Term.Param =
-    Term.Param(
-      mods = List.empty,
-      name = Term.Name(caseClassFieldName),
-      decltpe = Some(implicitly[PrimitiveValueType[T]].tp),
-      default = None,
-    )
-
   def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String])] =
     Try {
       val indexPath = "indexes/games"
@@ -269,6 +248,28 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
       }
       else throw new Exception(s"Couldn't find or open file $indexPath")
     }.toEither
+
+  def writeFiles(
+    outputs: List[(scala.meta.Source, java.io.File)],
+    log: ManagedLogger,
+  ): List[java.io.File] = {
+    import java.nio.file.Files
+    import java.nio.file.Path
+    import java.io.FileOutputStream
+
+    log.info("★ ★ ★  Generated files ★ ★ ★")
+    val genFiles =
+      outputs.map {
+        case (src, dest) =>
+          Files.createDirectories(Path.of(dest.getParent()))
+          Using.resource(new FileOutputStream(dest))(_.write(src.syntax.getBytes()))
+          dest
+      }
+
+    genFiles.map(_.getAbsolutePath).foreach(log.info(_))
+    log.info("★ ★ ★ ★ ★ ★")
+    genFiles
+  }
 
   /*def mkFilterableParam[T: PrimitiveValueType](
       indexFieldName: String,
@@ -382,26 +383,4 @@ object ZioSchemaIndexGeneratorPlugin extends AutoPlugin {
       default = Some(rightHs),
     )
   }*/
-
-  def writeFiles(
-      outputs: List[(scala.meta.Source, java.io.File)],
-      log: ManagedLogger,
-    ): List[java.io.File] = {
-    import java.nio.file.Files
-    import java.nio.file.Path
-    import java.io.FileOutputStream
-
-    log.info("★ ★ ★  Generated files ★ ★ ★")
-    val genFiles =
-      outputs.map {
-        case (src, dest) =>
-          Files.createDirectories(Path.of(dest.getParent()))
-          Using.resource(new FileOutputStream(dest))(_.write(src.syntax.getBytes()))
-          dest
-      }
-
-    genFiles.map(_.getAbsolutePath).foreach(log.info(_))
-    log.info("★ ★ ★ ★ ★ ★")
-    genFiles
-  }
 }
