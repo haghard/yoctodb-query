@@ -1,8 +1,8 @@
-scalaVersion := "2.13.15"
+scalaVersion := "2.13.18"
 
 name := "yoctodb-query"
 
-val AmmoniteVersion = "3.0.0"
+val AmmoniteVersion = "3.0.8"
 
 Compile / scalacOptions ++= Seq(
   "-Xsource:3-cross",
@@ -25,7 +25,7 @@ scalafmtOnCompile := true
 libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
-    "ch.qos.logback"     %  "logback-classic" % "1.5.11",
+    "ch.qos.logback"     %  "logback-classic" % "1.5.32",
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
 

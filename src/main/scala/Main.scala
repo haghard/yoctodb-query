@@ -1,14 +1,14 @@
 import com.yandex.yoctodb.DatabaseFormat
-import com.yandex.yoctodb.immutable.Database
-import com.yandex.yoctodb.query.{ QueryBuilder => yocto }
+//import com.yandex.yoctodb.immutable.Database
+import com.yandex.yoctodb.query.QueryBuilder as yocto
 import com.yandex.yoctodb.util.buf.Buffer
 import com.yandex.yoctodb.v1.immutable.V1Database
 import org.slf4j.LoggerFactory
 
 import java.nio.file.Paths
-import scala.util.Try
-import query.dsl._
-import Column._
+import scala.util.{ Failure, Success, Try }
+import query.dsl.*
+import Column.*
 
 object Program extends App {
   val logger = LoggerFactory.getLogger("app")
@@ -20,11 +20,11 @@ object Program extends App {
       .select
       .where(
         yocto.and(
-          index.column[GameStage].ops.in(Set("season-25-26", "playoff-25-26")),
-          yocto.or(index.column[HomeTeam].ops =:= "lal", index.column[AwayTeam].ops =:= "lal"),
+          index.get[GameStage].ops.in(Set("season-25-26", "playoff-25-26")),
+          yocto.or(index.get[HomeTeam].ops =:= "lal", index.get[AwayTeam].ops =:= "lal"),
         )
       )
-      .orderBy(index.column[GameTime].ops.desc())
+      .orderBy(index.get[GameTime].ops.desc())
       .limit(10)
 
   def loadIndex(): Try[V1Database] =
@@ -44,9 +44,12 @@ object Program extends App {
       else throw new Exception(s"Couldn't find or open file $indexPath")
     }
 
-  loadIndex().map {
-    searchIndex: V1Database =>
-      searchIndex.execute(
+  loadIndex() match {
+    case Success(searchIndex) =>
+      val c = searchIndex.count(query)
+      logger.debug(s"Doc count: $c")
+
+    /*searchIndex.execute(
         query,
         (docId: Int, _: Database) => {
           val payload: com.yandex.yoctodb.util.buf.Buffer =
@@ -55,7 +58,9 @@ object Program extends App {
           logger.debug(s"DocId: $docId ${payload.toByteArray.length}")
           true
         },
-      )
+      )*/
+    case Failure(ex) =>
+      ex.printStackTrace()
   }
 
 }

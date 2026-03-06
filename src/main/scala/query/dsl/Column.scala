@@ -1,6 +1,6 @@
 package query.dsl
 
-import scala.annotation.nowarn
+import scala.annotation.{ implicitNotFound, nowarn }
 import scala.reflect.ClassTag
 
 final case class Column[+T] private (private val map: Map[ClassTag[?], Any])
@@ -14,8 +14,9 @@ object Column {
       ): C & A =
       new Column(self.map + that.map.head).asInstanceOf[C & A]
 
-    def column[A <: IndexColumn[?]: ClassTag](
+    def get[A: ClassTag](
         implicit
+        @implicitNotFound("Unknown type ${A}")
         ev: C <:< Column[A]
       ): A =
       self.map(implicitly[ClassTag[A]]).asInstanceOf[A]
