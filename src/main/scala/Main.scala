@@ -1,5 +1,5 @@
 import com.yandex.yoctodb.DatabaseFormat
-//import com.yandex.yoctodb.immutable.Database
+import com.yandex.yoctodb.immutable.Database
 import com.yandex.yoctodb.query.QueryBuilder as yocto
 import com.yandex.yoctodb.util.buf.Buffer
 import com.yandex.yoctodb.v1.immutable.V1Database
@@ -25,7 +25,7 @@ object Program extends App {
         )
       )
       .orderBy(index.get[GameTime].ops.desc())
-      .limit(10)
+      .limit(82)
 
   def loadIndex(): Try[V1Database] =
     Try {
@@ -46,10 +46,7 @@ object Program extends App {
 
   loadIndex() match {
     case Success(searchIndex) =>
-      val c = searchIndex.count(query)
-      logger.debug(s"Doc count: $c")
-
-    /*searchIndex.execute(
+      searchIndex.execute(
         query,
         (docId: Int, _: Database) => {
           val payload: com.yandex.yoctodb.util.buf.Buffer =
@@ -58,7 +55,7 @@ object Program extends App {
           logger.debug(s"DocId: $docId ${payload.toByteArray.length}")
           true
         },
-      )*/
+      )
     case Failure(ex) =>
       ex.printStackTrace()
   }
