@@ -1,12 +1,16 @@
+name := "yoctodb-query"
 scalaVersion := "2.13.18"
 
-name := "yoctodb-query"
-
+val schemaV = "1.8.2"
 val AmmoniteVersion = "3.0.8"
+
+lazy val javaVersion = sys.props("java.specification.version")
 
 Compile / scalacOptions ++= Seq(
   "-Xsource:3-cross",
-  "-release:17",
+  s"-target:$javaVersion",
+  s"-release:$javaVersion",
+  "-Ylog-classpath",
   "-deprecation",
   "-feature",
   "-unchecked",
@@ -26,8 +30,17 @@ libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
     "ch.qos.logback"     %  "logback-classic" % "1.5.32",
+    "org.scalameta"      %% "scalameta" % "4.15.2",
+
+    "dev.zio" %% "zio-schema" % schemaV,
+    "dev.zio" %% "zio-schema-derivation" % schemaV,
+    "dev.zio" %% "zio-schema-json" % schemaV,
+
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
+
+javacOptions ++= Seq("-source", javaVersion, "-target", javaVersion)
+javaHome := Some(file(s"/Library/Java/JavaVirtualMachines/jdk-$javaVersion.jdk/Contents/Home/"))
 
 //test:run
 Test / sourceGenerators += Def.task {
@@ -39,3 +52,7 @@ Test / sourceGenerators += Def.task {
 
 addCommandAlias("c", "compile")
 addCommandAlias("r", "reload")
+
+//++2.13.18
+//show javacOptions
+//show scalacOptions
