@@ -33,7 +33,7 @@ def emitSources(
   val columns =
     schema.map { row =>
       val name = row._1
-      q"Col(${scala.meta.Term.Name(name)}())"
+      q"Column(${scala.meta.Term.Name(name)}())"
     }
 
   loadIndex()
@@ -69,7 +69,7 @@ def genIndex(columns: List[Term]): scala.meta.Source = {
     .getOrElse(throw new Exception("Empty columns!"))
   source"""
     package query.dsl
-    import query.dsl.Col._
+    import query.dsl.Column._
     object SearchIndex {
       val index = ${indexTerm}
     }

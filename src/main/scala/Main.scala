@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 import scala.util.Try
 import query.dsl._
-import Col._
+import Column._
 
 object Program extends App {
   val logger = LoggerFactory.getLogger("app")
@@ -20,7 +20,7 @@ object Program extends App {
       .select
       .where(
         yocto.and(
-          index.column[GameStage].ops.in(Set("season-18-19", "season-19-20")),
+          index.column[GameStage].ops.in(Set("season-25-26", "playoff-25-26")),
           yocto.or(index.column[HomeTeam].ops =:= "lal", index.column[AwayTeam].ops =:= "lal"),
         )
       )
