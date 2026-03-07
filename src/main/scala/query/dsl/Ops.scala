@@ -29,3 +29,9 @@ trait Sortable[T] extends Ops[T] {
   def asc(): com.yandex.yoctodb.query.Order
 
 }
+
+trait IndexColumn[A] {
+  def name: String
+  def $ : Ops[A]
+
+}

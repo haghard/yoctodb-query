@@ -50,6 +50,10 @@ Test / sourceGenerators += Def.task {
 }.taskValue
 
 
+Compile / sourceGenerators += IndexGeneratorPlugin.autoImport.genIndexDsl
+enablePlugins(IndexGeneratorPlugin)
+
+
 addCommandAlias("c", "compile")
 addCommandAlias("r", "reload")
 
