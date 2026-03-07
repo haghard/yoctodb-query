@@ -190,7 +190,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
         import com.yandex.yoctodb.query._
         import com.yandex.yoctodb.util.UnsignedByteArrays
         final case class ${term}(${ctorParam}) extends IndexColumn[$clmType] {
-          ${CompanionFunctions.buildFilterableTerm(columnName, columnTypeName, clmType)}
+          ${CompanionFunctions.buildFilterableTerm(columnTypeName, clmType)}
         }
       """
 
@@ -200,7 +200,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
         import com.yandex.yoctodb.query._
         import com.yandex.yoctodb.util.UnsignedByteArrays
         final case class ${term}(${ctorParam}) extends IndexColumn[$clmType] {
-          ${CompanionFunctions.buildFilterableNumTerm(columnName, columnTypeName, clmType)}
+          ${CompanionFunctions.buildFilterableNumTerm(columnTypeName, clmType)}
         }
       """
 
@@ -209,7 +209,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
         package query.dsl
         import com.yandex.yoctodb.query._
         final case class ${term}(${ctorParam}) extends IndexColumn[$clmType] {
-          ${CompanionFunctions.buildSortableTerm(columnName, columnTypeName, clmType)}
+          ${CompanionFunctions.buildSortableTerm(columnTypeName, clmType)}
         }
       """
     }
