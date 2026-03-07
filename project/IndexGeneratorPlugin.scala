@@ -34,8 +34,16 @@ object PrimitiveType {
     String_.typeName.value -> Some(String_),
   )
 
-  def fromStr(columnType: String): Option[PrimitiveType[?]] =
-    terms.getOrElse(columnType, None)
+  def fromConfig(columnType: String, isFilterable: Boolean): Option[(PrimitiveType[?], Type.Name)] =
+    terms.getOrElse(columnType, None).map { tp =>
+      val ops =
+        if (isFilterable)
+          if (tp.isNumetic) t"FilterableNum" else t"Filterable"
+        else
+          t"Sortable"
+
+      (tp, ops)
+    }
 }
 
 object IndexGeneratorPlugin extends AutoPlugin {
@@ -52,7 +60,13 @@ object IndexGeneratorPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     autoImport.genIndexDsl := {
       val managedSourceDir = (Compile / sourceManaged).value
-      writeFiles(genSources(ConfigFactory.parseFile(new File("./src/main/resources/application.conf")), managedSourceDir), streams.value.log)
+      writeFiles(
+        genSources(
+          ConfigFactory.parseFile(new File("./src/main/resources/application.conf")),
+          managedSourceDir,
+        ),
+        streams.value.log,
+      )
     }
   )
 
@@ -72,14 +86,13 @@ object IndexGeneratorPlugin extends AutoPlugin {
 
               val pType =
                 PrimitiveType
-                  .fromStr(columnType)
+                  .fromConfig(columnType, isFilterable = true)
                   .getOrElse(throw new Exception(s"Filter($columnName) definition error"))
 
               (
                 key,
                 columnName.charAt(0).toTitleCase + columnName.substring(1),
                 pType,
-                if(pType.isNumetic) t"FilterableNum" else t"Filterable"
               )
             }
 
@@ -92,21 +105,33 @@ object IndexGeneratorPlugin extends AutoPlugin {
                 key,
                 columnName.charAt(0).toTitleCase + columnName.substring(1),
                 PrimitiveType
-                  .fromStr(columnType)
+                  .fromConfig(columnType, isFilterable = false)
                   .getOrElse(throw new Exception(s"Sorter($columnName) definition error")),
-                t"Sortable"
               )
             }
 
           val schema = (filters ++ sorters).toList
 
           val generatedTerms =
-            schema.map { case (_, name, tp, opsTrait) =>
-              (generateTerm(name, tp.typeName.value, opsTrait), sourceManagedPath / "query" / "dsl" / s"${name}.scala")
+            schema.map {
+              case (_, name, (tp, opsTrait)) =>
+                (
+                  generateTerm(name, tp.typeName.value, opsTrait),
+                  sourceManagedPath / "query" / "dsl" / s"${name}.scala",
+                )
             }
 
-          val cTors = schema.map { case (configKeyName, name, _, _) => (configKeyName, q"${scala.meta.Term.Name(name)}()") }
-          generatedTerms :+ (genIndex(cTors), sourceManagedPath / "query" / "dsl" / s"${fileName}.scala")
+          val nameWithCtor = schema.map {
+            case (configKey, name, _) =>
+              (
+                configKey.charAt(0).toLower + configKey.substring(1),
+                q"${scala.meta.Term.Name(name)}()",
+              )
+          }
+          generatedTerms :+ (
+            genIndex(nameWithCtor),
+            sourceManagedPath / "query" / "dsl" / s"${fileName}.scala",
+          )
       }
       .getOrElse(List.empty)
 
@@ -174,10 +199,10 @@ object IndexGeneratorPlugin extends AutoPlugin {
   }
 
   def generateTerm(
-    termName: String,
-    scalaTypeStr: String,
-    columnTypeName: scala.meta.Type.Name,
-  ): scala.meta.Source = {
+      termName: String,
+      scalaTypeStr: String,
+      columnTypeName: scala.meta.Type.Name,
+    ): scala.meta.Source = {
     val term = Type.Name(termName)
     val clmType = Type.Name(scalaTypeStr)
     val columnName = termName.charAt(0).toLower + termName.substring(1)
@@ -219,13 +244,14 @@ object IndexGeneratorPlugin extends AutoPlugin {
   def genIndex(columns: List[(String, Term.Apply)]): scala.meta.Source = {
 
     val vals =
-      columns.map { case (termName, termCtor) =>
-        Defn.Val(
-          mods = Nil,
-          pats = List(Pat.Var(name = Term.Name(termName.charAt(0).toLower + termName.substring(1)))),
-          decltpe = None,
-          rhs = termCtor
-        )
+      columns.map {
+        case (termName, termCtor) =>
+          Defn.Val(
+            mods = Nil,
+            pats = List(Pat.Var(name = Term.Name(termName))),
+            decltpe = None,
+            rhs = termCtor,
+          )
 
         /*Defn.Def(
           mods = Nil,
@@ -236,24 +262,25 @@ object IndexGeneratorPlugin extends AutoPlugin {
         )*/
       }
 
-
-    val indexObject =
+    val searchIndexObject =
       Defn.Object(
         mods = Nil,
         name = Term.Name(fileName),
-        templ = scala.meta.Template(
-          earlyClause = None,
-          inits = Nil,
-          body = Template.Body(selfOpt = None, stats = vals),
-          derives = Nil,
-        )
+        templ = scala
+          .meta
+          .Template(
+            earlyClause = None,
+            inits = Nil,
+            body = Template.Body(selfOpt = None, stats = vals),
+            derives = Nil,
+          ),
       )
 
     Source(
       stats = List(
         Pkg(
           ref = Term.Select(Term.Name("query"), Term.Name("dsl")),
-          body = Pkg.Body(List(indexObject))
+          body = Pkg.Body(List(searchIndexObject)),
         )
       )
     )
