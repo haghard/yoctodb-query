@@ -47,7 +47,7 @@ object PrimitiveType {
 }
 
 object IndexGeneratorPlugin extends AutoPlugin {
-  val configFilePath = "./src/main/resources/application.conf"
+  val configFilePath = "/src/main/resources/application.conf"
   val fileName = "SearchIndex"
 
   override def requires: JvmPlugin.type = sbt.plugins.JvmPlugin
@@ -61,9 +61,12 @@ object IndexGeneratorPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     autoImport.genIndexDsl := {
       val managedSourceDir = (Compile / sourceManaged).value
+      val cfgFilePath = baseDirectory.value.toString + configFilePath
+      println(s"★ ★ ★ Load config file $cfgFilePath ★ ★ ★ ★")
+
       writeFiles(
         genSources(
-          ConfigFactory.parseFile(new File(configFilePath)),
+          ConfigFactory.parseFile(new File(cfgFilePath)),
           managedSourceDir,
         ),
         streams.value.log,

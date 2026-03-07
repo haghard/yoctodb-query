@@ -51,7 +51,12 @@ Test / sourceGenerators += Def.task {
 
 
 Compile / sourceGenerators += IndexGeneratorPlugin.autoImport.genIndexDsl
-enablePlugins(IndexGeneratorPlugin)
+
+enablePlugins(IndexGeneratorPlugin, BuildInfoPlugin)
+
+buildInfoOptions += BuildInfoOption.ConstantValue
+buildInfoKeys ++= Seq[BuildInfoKey]("rootDir" -> baseDirectory.value.toString)
+buildInfoPackage := "query.dsl"
 
 
 addCommandAlias("c", "compile")
