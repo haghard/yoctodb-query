@@ -47,7 +47,8 @@ object PrimitiveType {
 }
 
 object IndexGeneratorPlugin extends AutoPlugin {
-  private val fileName = "SearchIndex"
+  val configFilePath = "./src/main/resources/application.conf"
+  val fileName = "SearchIndex"
 
   override def requires: JvmPlugin.type = sbt.plugins.JvmPlugin
 
@@ -62,7 +63,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
       val managedSourceDir = (Compile / sourceManaged).value
       writeFiles(
         genSources(
-          ConfigFactory.parseFile(new File("./src/main/resources/application.conf")),
+          ConfigFactory.parseFile(new File(configFilePath)),
           managedSourceDir,
         ),
         streams.value.log,
