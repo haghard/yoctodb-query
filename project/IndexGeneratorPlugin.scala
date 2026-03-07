@@ -39,6 +39,7 @@ object PrimitiveType {
 }
 
 object IndexGeneratorPlugin extends AutoPlugin {
+  private val fileName = "SearchIndex"
 
   override def requires: JvmPlugin.type = sbt.plugins.JvmPlugin
 
@@ -104,8 +105,8 @@ object IndexGeneratorPlugin extends AutoPlugin {
               (generateTerm(name, tp.typeName.value, opsTrait), sourceManagedPath / "query" / "dsl" / s"${name}.scala")
             }
 
-          val in = schema.map { case (k, name, _, _) => (k, q"${scala.meta.Term.Name(name)}()") }
-          generatedTerms :+ (genIndex(in), sourceManagedPath / "query" / "dsl" / "SearchIndex.scala")
+          val cTors = schema.map { case (configKeyName, name, _, _) => (configKeyName, q"${scala.meta.Term.Name(name)}()") }
+          generatedTerms :+ (genIndex(cTors), sourceManagedPath / "query" / "dsl" / s"${fileName}.scala")
       }
       .getOrElse(List.empty)
 
@@ -179,8 +180,8 @@ object IndexGeneratorPlugin extends AutoPlugin {
   ): scala.meta.Source = {
     val term = Type.Name(termName)
     val clmType = Type.Name(scalaTypeStr)
-
     val columnName = termName.charAt(0).toLower + termName.substring(1)
+
     val ctorParam = param"override val name: String = $columnName"
 
     columnTypeName.value match {
@@ -218,12 +219,12 @@ object IndexGeneratorPlugin extends AutoPlugin {
   def genIndex(columns: List[(String, Term.Apply)]): scala.meta.Source = {
 
     val vals =
-      columns.map { case (termName, opTerm) =>
+      columns.map { case (termName, termCtor) =>
         Defn.Val(
           mods = Nil,
           pats = List(Pat.Var(name = Term.Name(termName.charAt(0).toLower + termName.substring(1)))),
           decltpe = None,
-          rhs = opTerm
+          rhs = termCtor
         )
 
         /*Defn.Def(
@@ -239,7 +240,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
     val indexObject =
       Defn.Object(
         mods = Nil,
-        name = Term.Name("SearchIndex"),
+        name = Term.Name(fileName),
         templ = scala.meta.Template(
           earlyClause = None,
           inits = Nil,
