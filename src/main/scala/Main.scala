@@ -6,8 +6,11 @@ import com.yandex.yoctodb.v1.immutable.V1Database
 import org.slf4j.LoggerFactory
 
 import java.nio.file.Paths
-import scala.util.{ Failure, Success, Try }
+import scala.util.*
 import query.dsl.*
+import com.yandex.yoctodb.util.buf.Buffer as YoctodbBuffer
+
+import java.nio.charset.StandardCharsets
 
 object Program extends App {
   val logger = LoggerFactory.getLogger("app")
@@ -24,7 +27,7 @@ object Program extends App {
         )
       )
       .orderBy(gameTime.$.desc())
-      .limit(82)
+      .limit(100)
 
   def loadIndex(): Try[V1Database] =
     Try {
@@ -34,7 +37,7 @@ object Program extends App {
         val reader = DatabaseFormat.getCurrent().getDatabaseReader()
         val db = reader.from(Buffer.mmap(indexFile, false)).asInstanceOf[V1Database]
         logger.warn(
-          "★ ★ ★    Index size: {} MB. Docs number: {}  ★ ★ ★",
+          "★ ★ ★    Index size: {} MB. Found {} documents   ★ ★ ★",
           indexFile.length() / (1024 * 1024),
           db.getDocumentCount(),
         )
@@ -48,10 +51,15 @@ object Program extends App {
       searchIndex.execute(
         query,
         (docId: Int, _: Database) => {
-          val payload: com.yandex.yoctodb.util.buf.Buffer =
-            searchIndex.getFieldValue(docId, "g_payload")
+          // val payload: YoctodbBuffer = searchIndex.getFieldValue(docId, "g_payload")
+          val gameInfo: YoctodbBuffer = searchIndex.getFieldValue(docId, "g_info")
+
           // val result = NbaResultPB.parseFrom(new com.yandex.yoctodb.util.buf.BufferInputStream(payload))
-          logger.debug(s"DocId: $docId ${payload.toByteArray.length}")
+          // logger.debug(s"DocId: $docId ${payload.toByteArray.length} ${gameInfo.toByteArray}")
+
+          logger.debug(
+            s"doc_id:$docId ${new String(gameInfo.toByteArray(), StandardCharsets.UTF_8)}"
+          )
           true
         },
       )

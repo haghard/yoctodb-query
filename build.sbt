@@ -1,7 +1,6 @@
 name := "yoctodb-query"
 scalaVersion := "2.13.18"
 
-val schemaV = "1.8.2"
 val AmmoniteVersion = "3.0.8"
 
 lazy val javaVersion = sys.props("java.specification.version")
@@ -31,11 +30,7 @@ libraryDependencies ++=
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
     "ch.qos.logback"     %  "logback-classic" % "1.5.32",
     "org.scalameta"      %% "scalameta" % "4.15.2",
-
-    "dev.zio" %% "zio-schema" % schemaV,
-    "dev.zio" %% "zio-schema-derivation" % schemaV,
-    "dev.zio" %% "zio-schema-json" % schemaV,
-
+    
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
 
