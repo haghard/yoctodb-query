@@ -84,26 +84,22 @@ object IndexGeneratorPlugin extends AutoPlugin {
 
           val filters =
             filtered.asScala.map { columnName =>
-              val columnType = config.getString(s"filters.$columnName")
-              val pType =
-                PrimitiveType
-                  .fromConfig(columnType, isFilterable = true)
-                  .getOrElse(throw new Exception(s"Filter($columnName) definition error"))
               (
                 columnName,
                 columnName.charAt(0).toTitleCase + columnName.substring(1),
-                pType,
+                PrimitiveType
+                  .fromConfig(config.getString(s"filters.$columnName"), isFilterable = true)
+                  .getOrElse(throw new Exception(s"Filter($columnName) definition error")),
               )
             }
 
           val sorters =
             sorted.asScala.map { columnName =>
-              val columnType = config.getString(s"sorters.$columnName")
               (
                 columnName,
                 columnName.charAt(0).toTitleCase + columnName.substring(1),
                 PrimitiveType
-                  .fromConfig(columnType, isFilterable = false)
+                  .fromConfig(config.getString(s"sorters.$columnName"), isFilterable = false)
                   .getOrElse(throw new Exception(s"Sorter($columnName) definition error")),
               )
             }
