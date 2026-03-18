@@ -22,11 +22,11 @@ object Program extends App {
       .select
       .where(
         yocto.and(
-          stage.$.in(Set("season-25-26", "playoff-25-26")),
-          yocto.or(homeTeam.$ =:= "lal", vistorTeam.$ =:= "lal"),
+          games_stage.$.in(Set("season-25-26", "playoff-25-26")),
+          yocto.or(games_ht.$ =:= "lal", games_at.$ =:= "lal"),
         )
       )
-      .orderBy(gameTime.$.desc())
+      .orderBy(games_ts.$.desc())
       .limit(100)
 
   def loadIndex(): Try[V1Database] =

@@ -80,7 +80,36 @@ object IndexGeneratorPlugin extends AutoPlugin {
     ): List[(scala.meta.Source, java.io.File)] =
     loadIndex()
       .map {
-        case (sorted, filtered) =>
+        case (filtered, sorted) =>
+
+          val filters =
+            filtered.asScala.map { columnName =>
+              val columnType = config.getString(s"filters.$columnName")
+              val pType =
+                PrimitiveType
+                  .fromConfig(columnType, isFilterable = true)
+                  .getOrElse(throw new Exception(s"Filter($columnName) definition error"))
+              (
+                columnName,
+                columnName.charAt(0).toTitleCase + columnName.substring(1),
+                pType,
+              )
+            }
+
+          val sorters =
+            sorted.asScala.map { columnName =>
+              val columnType = config.getString(s"sorters.$columnName")
+              (
+                columnName,
+                columnName.charAt(0).toTitleCase + columnName.substring(1),
+                PrimitiveType
+                  .fromConfig(columnType, isFilterable = false)
+                  .getOrElse(throw new Exception(s"Sorter($columnName) definition error")),
+              )
+            }
+
+          /*
+          application2.conf
 
           val filters =
             config.getObject("filters").keySet().asScala.map { key =>
@@ -112,7 +141,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
                   .fromConfig(columnType, isFilterable = false)
                   .getOrElse(throw new Exception(s"Sorter($columnName) definition error")),
               )
-            }
+            }*/
 
           val schema = (filters ++ sorters).toList
 
@@ -177,8 +206,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
         }
         println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★\n")
 
-        (sorters.keySet(), filters.keySet())
-
+        (filters.keySet(), sorters.keySet())
       }
       else throw new Exception(s"Couldn't find or open file $indexPath")
     }.toEither
