@@ -1,7 +1,7 @@
-// We need scalameta to be available for /bespoke-plugin.sbt, so we put it one level up
 libraryDependencies ++=
   Seq(
-    "org.scalameta" %% "scalameta" % "4.15.2",
+    //https://scalameta.org/docs/trees/guide.html#from-strings
+    //https://scalameta.org/ast-explorer/
+    "org.scalameta" %% "scalameta" % "4.16.0",
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
   )
-

@@ -15,8 +15,8 @@ import sbt.internal.util.ManagedLogger
 import java.nio.file.Files
 import java.nio.file.Path
 import java.io.FileOutputStream
-
 import java.nio.file.Paths
+import java.util
 import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters.*
 
@@ -27,11 +27,13 @@ object PrimitiveType {
   implicit object Int_ extends PrimitiveType[Int](Type.Name("Int"), true)
   implicit object Long_ extends PrimitiveType[Long](Type.Name("Long"), true)
   implicit object String_ extends PrimitiveType[String](Type.Name("String"), false)
+  implicit object Double_ extends PrimitiveType[Double](Type.Name("Double"), true)
 
   private val terms = Map(
     Int_.typeName.value -> Some(Int_),
     Long_.typeName.value -> Some(Long_),
     String_.typeName.value -> Some(String_),
+    Double_.typeName.value -> Some(Double_),
   )
 
   def fromConfig(columnType: String, isFilterable: Boolean): Option[(PrimitiveType[?], Type.Name)] =
@@ -44,11 +46,16 @@ object PrimitiveType {
 
       (tp, ops)
     }
+
+  def fromConfigBoth(columnType: String): Option[(PrimitiveType[?], Type.Name)] =
+    terms.getOrElse(columnType, None).map { tp =>
+      val ops = if(tp.isNumetic) t"BothNum" else t"Both"
+      (tp, ops)
+    }
 }
 
 object IndexGeneratorPlugin extends AutoPlugin {
   val configFilePath = "/src/main/resources/application.conf"
-  val fileName = "SearchIndex"
 
   override def requires: JvmPlugin.type = sbt.plugins.JvmPlugin
 
@@ -65,108 +72,99 @@ object IndexGeneratorPlugin extends AutoPlugin {
       println(s"★ ★ ★ Load config file $cfgFilePath ★ ★ ★ ★")
 
       writeFiles(
-        genSources(
-          ConfigFactory.parseFile(new File(cfgFilePath)),
-          managedSourceDir,
-        ),
+        genSources(ConfigFactory.parseFile(new File(cfgFilePath)).getConfig("player-stat"), "playerStat", managedSourceDir),
         streams.value.log,
+      )
+
+      writeFiles(
+        genSources(ConfigFactory.parseFile(new File(cfgFilePath)).getConfig("game-info"), "gameInfo", managedSourceDir),
+        streams.value.log,
+      )
+
+      writeFiles(
+        genSources(ConfigFactory.parseFile(new File(cfgFilePath)).getConfig("game-stat"), "gameStat", managedSourceDir),
+        streams.value.log
       )
     }
   )
 
   def genSources(
-      config: Config,
-      sourceManagedPath: java.io.File,
-    ): List[(scala.meta.Source, java.io.File)] =
-    loadIndex()
-      .map {
-        case (filtered, sorted) =>
+    gamesConfig: Config,
+    indexFileName: String,
+    sourceManagedPath: java.io.File,
+  ): List[(scala.meta.Source, java.io.File)] =
+    loadIndex("indexes/" + indexFileName).map { case (filtered, sorted) =>
+      val f = filtered.asScala
+      val s = sorted.asScala
 
-          val filters =
-            filtered.asScala.map { columnName =>
-              (
-                columnName,
-                columnName.charAt(0).toTitleCase + columnName.substring(1),
-                PrimitiveType
-                  .fromConfig(config.getString(s"filters.$columnName"), isFilterable = true)
-                  .getOrElse(throw new Exception(s"Filter($columnName) definition error")),
-              )
-            }
+      val filteredAndSorted = f.intersect(s)
+      filteredAndSorted.foreach(f.remove(_))
+      filteredAndSorted.foreach(s.remove(_))
 
-          val sorters =
-            sorted.asScala.map { columnName =>
-              (
-                columnName,
-                columnName.charAt(0).toTitleCase + columnName.substring(1),
-                PrimitiveType
-                  .fromConfig(config.getString(s"sorters.$columnName"), isFilterable = false)
-                  .getOrElse(throw new Exception(s"Sorter($columnName) definition error")),
-              )
-            }
+      /*println(f.mkString(","))
+      println(s.mkString(","))
+      println(filteredAndSorted.mkString(","))*/
 
-          /*
-          application2.conf
+      val filters =
+        f.map { columnName =>
+          (
+            columnName,
+            columnName.charAt(0).toTitleCase + columnName.substring(1),
+            PrimitiveType
+              .fromConfig(gamesConfig.getString(s"filters.$columnName"), isFilterable = true)
+              .getOrElse(throw new Exception(s"Filter($columnName) definition error")),
+          )
+        }
 
-          val filters =
-            config.getObject("filters").keySet().asScala.map { key =>
-              val cfg = config.getConfig(s"filters.$key")
-              val columnName = cfg.getString("column_name")
-              val columnType = cfg.getString("type")
+      val sorters =
+        s.map { columnName =>
+          (
+            columnName,
+            columnName.charAt(0).toTitleCase + columnName.substring(1),
+            PrimitiveType
+              .fromConfig(gamesConfig.getString(s"sorters.$columnName"), isFilterable = false)
+              .getOrElse(throw new Exception(s"Filter($columnName) definition error")),
+          )
+        }
 
-              val pType =
-                PrimitiveType
-                  .fromConfig(columnType, isFilterable = true)
-                  .getOrElse(throw new Exception(s"Filter($columnName) definition error"))
+      val both =
+        filteredAndSorted.map { columnName =>
+          (
+            columnName,
+            columnName.charAt(0).toTitleCase + columnName.substring(1),
+            PrimitiveType
+              .fromConfigBoth(gamesConfig.getString(s"filters.$columnName"))
+              .getOrElse(throw new Exception(s"Both($columnName) definition error")),
+          )
+        }
 
-              (
-                key,
-                columnName.charAt(0).toTitleCase + columnName.substring(1),
-                pType,
-              )
-            }
+      val schema = (filters ++ sorters ++ both).toList
 
-          val sorters =
-            config.getObject("sorters").keySet().asScala.map { key =>
-              val cfg = config.getConfig(s"sorters.$key")
-              val columnName = cfg.getString("column_name")
-              val columnType = cfg.getString("type")
-              (
-                key,
-                columnName.charAt(0).toTitleCase + columnName.substring(1),
-                PrimitiveType
-                  .fromConfig(columnType, isFilterable = false)
-                  .getOrElse(throw new Exception(s"Sorter($columnName) definition error")),
-              )
-            }*/
+      val generatedTerms =
+        schema.map {
+          case (_, name, (tp, opsTrait)) =>
+            (
+              generateTermClassContent(name, tp.typeName.value, opsTrait),
+              sourceManagedPath / "query" / "dsl" / indexFileName / s"${name}.scala",
+            )
+        }
 
-          val schema = (filters ++ sorters).toList
-
-          val generatedTerms =
-            schema.map {
-              case (_, name, (tp, opsTrait)) =>
-                (
-                  generateTerm(name, tp.typeName.value, opsTrait),
-                  sourceManagedPath / "query" / "dsl" / s"${name}.scala",
-                )
-            }
-
-          val nameWithCtor = schema.map {
-            case (configKey, name, _) =>
-              (
-                configKey.charAt(0).toLower + configKey.substring(1),
-                q"${scala.meta.Term.Name(name)}()",
-              )
-          }
-          generatedTerms :+ (
-            genIndex(nameWithCtor),
-            sourceManagedPath / "query" / "dsl" / s"${fileName}.scala",
+      val nameWithCtor = schema.map {
+        case (configKey, name, _) =>
+          (
+            configKey.charAt(0).toLower + configKey.substring(1),
+            q"${scala.meta.Term.Name(name)}()",
           )
       }
-      .getOrElse(List.empty)
 
-  def loadIndex(): Either[Throwable, (java.util.Set[String], java.util.Set[String])] =
+      generatedTerms :+ (
+        genIndex(nameWithCtor, indexFileName),
+        sourceManagedPath / "query" / "dsl" / s"${indexFileName}.scala",
+      )
+    }.getOrElse(List.empty)
+
+  def loadIndex(indexPath: String): Either[Throwable, (java.util.Set[String], java.util.Set[String])] =
     Try {
-      val indexPath = "indexes/games"
       val indexFile = Paths.get(indexPath).toFile()
       if (indexFile.exists() && indexFile.isFile()) {
         val reader = DatabaseFormat.getCurrent().getDatabaseReader()
@@ -202,7 +200,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
         }
         println("★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★\n")
 
-        (filters.keySet(), sorters.keySet())
+        (new util.HashSet[String](filters.keySet()), new util.HashSet[String](sorters.keySet()))
       }
       else throw new Exception(s"Couldn't find or open file $indexPath")
     }.toEither
@@ -211,65 +209,72 @@ object IndexGeneratorPlugin extends AutoPlugin {
       outputs: List[(scala.meta.Source, java.io.File)],
       log: ManagedLogger,
     ): List[java.io.File] = {
-
-    log.info("★ ★ ★  Generated files ★ ★ ★")
+    log.info(s"★ ★ ★  Generate ${outputs.size} files ★ ★ ★")
     val genFiles =
       outputs.map {
         case (src, dest) =>
-          Files.createDirectories(Path.of(dest.getParent()))
+          log.info(s"★ ★ ★ Directory ${dest.getParent}")
+          Files.createDirectories(Path.of(dest.getParent))
           Using.resource(new FileOutputStream(dest))(_.write(src.syntax.getBytes()))
           dest
       }
 
-    genFiles.map(_.getAbsolutePath).foreach(log.info(_))
-    log.info("★ ★ ★ ★ ★ ★")
+    genFiles.map(_.getAbsolutePath()).foreach(log.info(_))
     genFiles
   }
 
-  def generateTerm(
+  def generateTermClassContent(
       termName: String,
       scalaTypeStr: String,
       columnTypeName: scala.meta.Type.Name,
     ): scala.meta.Source = {
+
     val term = Type.Name(termName)
-    val clmType = Type.Name(scalaTypeStr)
-    val columnName = termName.charAt(0).toLower + termName.substring(1)
+    val scalaType = Type.Name(scalaTypeStr)
+    val column = termName.charAt(0).toLower + termName.substring(1)
 
-    val ctorParam = param"override val name: String = $columnName"
+    val nameVal: scala.meta.Term.Param =
+      param"override val name: String = $column"
 
-    columnTypeName.value match {
-      case "Filterable" =>
-        source"""
-        package query.dsl
-        import com.yandex.yoctodb.query._
-        import com.yandex.yoctodb.util.UnsignedByteArrays
-        final case class ${term}(${ctorParam}) extends IndexColumn[$clmType] {
-          ${CompanionFunctions.buildFilterableTerm(columnTypeName, clmType)}
-        }
-      """
+    val classDef: Defn.Class = {
+      columnTypeName.value match {
+        case "Filterable" =>
+          q"""final case class ${term} (${nameVal}) extends IndexColumn[$scalaType] {${Helpers.filterable(columnTypeName, scalaType)}}"""
 
-      case "FilterableNum" =>
-        source"""
-        package query.dsl
-        import com.yandex.yoctodb.query._
-        import com.yandex.yoctodb.util.UnsignedByteArrays
-        final case class ${term}(${ctorParam}) extends IndexColumn[$clmType] {
-          ${CompanionFunctions.buildFilterableNumTerm(columnTypeName, clmType)}
-        }
-      """
+        case "FilterableNum" =>
+          q"""final case class ${term}(${nameVal}) extends IndexColumn[$scalaType] with DoubleWriter {${Helpers.filterableNum(columnTypeName, scalaType, scalaTypeStr == PrimitiveType.Double_.typeName.value)}}"""
 
-      case "Sortable" =>
-        source"""
-        package query.dsl
-        import com.yandex.yoctodb.query._
-        final case class ${term}(${ctorParam}) extends IndexColumn[$clmType] {
-          ${CompanionFunctions.buildSortableTerm(columnTypeName, clmType)}
-        }
-      """
+        case "Sortable" =>
+          q"""final case class ${term}(${nameVal}) extends IndexColumn[$scalaType] {${Helpers.sortable(columnTypeName, scalaType)}}"""
+
+        case "Both" =>
+          q"""final case class ${term} (${nameVal}) extends IndexColumn[$scalaType] {${Helpers.both(columnTypeName, scalaType)}}"""
+
+        case "BothNum" =>
+          q"""final case class ${term} (${nameVal}) extends IndexColumn[$scalaType] with DoubleWriter {${Helpers.bothNum(columnTypeName, scalaType, scalaTypeStr == PrimitiveType.Double_.typeName.value)}}"""
+
+        case unknown =>
+          throw new Exception(s"Unexpected $unknown")
+      }
     }
+
+    val termSource =
+      s"""package query.dsl
+       |import com.yandex.yoctodb.query._
+       |import com.yandex.yoctodb.util.UnsignedByteArrays
+       |${classDef.syntax}
+      """
+        .stripMargin
+        .parse[Source]
+        .fold(e => throw e.details, identity)
+
+    println(s"★ ★ ★ ${termName} AST")
+    println(termSource.structure)
+    println("★ ★ ★ ★ ★ ★ ★ ★ ★")
+    termSource
   }
 
-  def genIndex(columns: List[(String, Term.Apply)]): scala.meta.Source = {
+  def genIndex(columns: List[(String, Term.Apply)], indexFileName: String): scala.meta.Source = {
 
     val vals =
       columns.map {
@@ -290,10 +295,12 @@ object IndexGeneratorPlugin extends AutoPlugin {
         )*/
       }
 
+    // Defn.Object(???)
+
     val searchIndexObject =
       Defn.Object(
         mods = Nil,
-        name = Term.Name(fileName),
+        name = Term.Name(s"${indexFileName}"),
         templ = scala
           .meta
           .Template(
@@ -307,8 +314,8 @@ object IndexGeneratorPlugin extends AutoPlugin {
     Source(
       stats = List(
         Pkg(
-          ref = Term.Select(Term.Name("query"), Term.Name("dsl")),
-          body = Pkg.Body(List(searchIndexObject)),
+          ref = Term.Select(qual = Term.Name("query"), name = Term.Name("dsl")),
+          body = Pkg.Body.apply(stats = List(searchIndexObject)),
         )
       )
     )

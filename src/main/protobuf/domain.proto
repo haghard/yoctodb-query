@@ -1,0 +1,91 @@
+syntax = "proto3";
+package basket.domain.v1;
+
+import "scalapb/scalapb.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+option (scalapb.options) = {
+    single_file: true
+    flat_package: true
+    no_default_values_in_constructor: false
+    lenses: false
+    preserve_unknown_fields: false
+};
+
+message TotalPB {
+  string mp = 1;
+  int32 fg = 2;
+  int32 fga = 3;
+  double fg_pct = 4;
+  int32 fg3 = 5;
+  int32 fg3a = 6;
+  double fg3_pct = 7;
+  int32 ft = 8;
+  int32 fta = 9;
+  double ft_pct = 10;
+  int32 orb = 11;
+  int32 drb = 12;
+  int32 trb = 13;
+  int32 ast = 14;
+  int32 stl = 15;
+  int32 blk = 16;
+  int32 tov = 17;
+  int32 pf = 18;
+  int32 pts = 19;
+  string plus_minus = 20;
+}
+
+message PlayerLinePB {
+  string name = 1;
+  string mp = 2;
+  int32 fg = 3;
+  int32 fga = 4;
+  double fg_pct = 5;
+  int32 fg3 = 6;
+  int32 fg3a = 7;
+  double fg3_pct = 8;
+  int32 ft = 9;
+  int32 fta = 10;
+  double ft_pct = 11;
+  int32 orb = 12;
+  int32 drb = 13;
+  int32 trb = 14;
+  int32 ast = 15;
+  int32 stl = 16;
+  int32 blk = 17;
+  int32 tov = 18;
+  int32 pf = 19;
+  int32 pts = 20;
+  string plus_minus = 21;
+}
+
+message NbaResultPB {
+  string homeTeam = 1;
+  int32 homeScore = 2;
+  string awayTeam = 3;
+  int32 awayScore = 4;
+  int64 when = 5;
+  string homeScoreLine = 6;
+  string awayScoreLine = 7;
+  TotalPB homeTotal = 8;
+  TotalPB awayTotal = 9;
+  repeated PlayerLinePB homePlayerLines = 10;
+  repeated PlayerLinePB awayPlayerLines = 11;
+}
+
+message NbaResultsPB {
+  repeated NbaResultPB results = 1;
+  int32 year = 2;
+  int32 month = 3;
+}
+
+//optional fields example
+message ExamplePB {
+  google.protobuf.Timestamp when = 1;
+  google.protobuf.StringValue maybeStr = 2;
+  google.protobuf.Int32Value maybeInt = 3;
+  google.protobuf.Int64Value maybeLong = 4;
+  google.protobuf.DoubleValue maybeDouble = 5;
+}
