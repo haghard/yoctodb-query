@@ -16,7 +16,7 @@ trait IndexLoader {
       val indexFile = Paths.get(indexPath).toFile
       if (indexFile.exists && indexFile.isFile) {
         val reader = DatabaseFormat.getCurrent().getDatabaseReader()
-        val db = reader.from(Buffer.mmap(indexFile, true)).asInstanceOf[V1Database]
+        val db = reader.from(Buffer.mmap(indexFile, false)).asInstanceOf[V1Database]
         logger.warn(
           s"★ ★ ★ Index {} size: {}MB contains {} documents   ★ ★ ★",
           indexPath,

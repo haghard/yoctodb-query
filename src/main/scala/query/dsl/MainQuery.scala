@@ -4,8 +4,8 @@ import com.yandex.yoctodb.immutable.Database
 import java.nio.charset.StandardCharsets
 import com.yandex.yoctodb.query.QueryBuilder as yocto
 
-//runMain query.dsl.Program
-object Program extends App with IndexLoader {
+//runMain query.dsl.MainQuery
+object MainQuery extends App with IndexLoader {
 
   /*val query =
     yocto
