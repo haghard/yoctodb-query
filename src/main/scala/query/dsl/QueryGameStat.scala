@@ -4,6 +4,7 @@ import com.yandex.yoctodb.immutable.Database
 import scala.util.*
 import com.yandex.yoctodb.query.QueryBuilder as yocto
 
+//runMain query.dsl.QueryGameStat
 object QueryGameStat extends App with IndexLoader {
   loadIndex("indexes/gameStat") match {
     case Success(gameStatIndex) =>
