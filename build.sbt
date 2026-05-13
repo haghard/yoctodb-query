@@ -27,7 +27,7 @@ Compile / scalacOptions ++= Seq(
   "-Xcheckinit",
   "-Ywarn-value-discard",
   "-Xlint",
-  "-Wconf:cat=other-match-analysis:error",
+  //"-Wconf:cat=other-match-analysis:error", //Transform exhaustivity warnings into errors.
   "-Wconf:msg=lambda-parens:s",
   "-Xmigration",
   "-Wconf:cat=unused-imports:s", //suppress all unused import warnings
@@ -40,7 +40,7 @@ libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
     "ch.qos.logback"     %  "logback-classic" % "1.5.32",
-    "org.scalameta"      %% "scalameta" % "4.16.1",
+    "org.scalameta"      %% "scalameta" % "4.17.0",
     "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )

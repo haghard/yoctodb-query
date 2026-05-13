@@ -42,8 +42,8 @@ object MainQuery extends App with IndexLoader {
     val q =
       yocto
         .select
-        .where(gameInfo.games_stage.$.=:=("playoff-25-26"))
-        .orderBy(gameInfo.games_ts.$.desc())
+        .where(query.dsl.gameInfo.games_stage.$.=:=("playoff-25-26"))
+        .orderBy(query.dsl.gameInfo.games_ts.$.desc())
         .limit(100)
 
     gamesInfoIndex.executeAndUnlimitedCount(
@@ -67,7 +67,7 @@ object MainQuery extends App with IndexLoader {
         logger.debug(gameInfoPb.toString)
 
         gameStatIndex.executeAndUnlimitedCount(
-          yocto.select.where(gameStat.teams_gameId.$.=:=(gameId)),
+          yocto.select.where(query.dsl.gameStat.teams_gameId.$.=:=(gameId)),
           (docId: Int, db: Database) => {
             val teamStatsPayload = db.getFieldValue(docId, "team_payload")
             val totalPb = basket
@@ -81,7 +81,7 @@ object MainQuery extends App with IndexLoader {
             )
 
             playerStatIndex.executeAndUnlimitedCount(
-              yocto.select.where(playerStat.players_gameId.$.=:=(gameId)),
+              yocto.select.where(query.dsl.playerStat.players_gameId.$.=:=(gameId)),
               (docId: Int, db: Database) => {
                 val payloadBuf = db.getFieldValue(docId, "pl_payload")
                 val playerNameBuf = db.getFieldValue(docId, "pl_name")
