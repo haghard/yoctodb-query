@@ -14,8 +14,8 @@ object QueryGameStat extends App with IndexLoader {
           .select
           .where(
             yocto.and(
-              gameStat.teams_name.$.=:=("lal"),
-              gameStat.teams_stage.$.=:=("season-25-26"),
+              gameStat.teams_name.$.=:=("sas"),
+              gameStat.teams_stage.$.=:=("playoff-25-26"),
             )
           )
           .orderBy(gameStat.teams_ts.$.desc())
