@@ -19,7 +19,7 @@ object QueryGameStat extends App with IndexLoader {
             )
           )
           .orderBy(gameStat.teams_ts.$.desc())
-          .limit(10)
+          .limit(15)
 
       /*
       val qTopfgPct =

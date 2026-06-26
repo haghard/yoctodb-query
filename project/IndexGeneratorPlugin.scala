@@ -20,16 +20,36 @@ import java.util
 import scala.annotation.implicitNotFound
 import scala.jdk.CollectionConverters.*
 
+//sealed abstract class PrimitiveType[T](val typeName: Type.Name, val isNumetic: Boolean)
 @implicitNotFound("Primitive[${T}] isn't supported")
-sealed abstract class PrimitiveType[T](val typeName: Type.Name, val isNumetic: Boolean)
+sealed trait PrimitiveType[@specialized T] extends Any {
+  def typeName: Type.Name
+  def isNumeric: Boolean
+}
 
 object PrimitiveType {
-  implicit object Int_ extends PrimitiveType[Int](Type.Name("Int"), true)
-  implicit object Long_ extends PrimitiveType[Long](Type.Name("Long"), true)
-  implicit object String_ extends PrimitiveType[String](Type.Name("String"), false)
-  implicit object Double_ extends PrimitiveType[Double](Type.Name("Double"), true)
 
-  private val terms = Map(
+  implicit object Int_ extends PrimitiveType[Int] {
+    val typeName = Type.Name("Int")
+    val isNumeric: Boolean = true
+  }
+
+  implicit object Long_ extends PrimitiveType[Long] {
+    val typeName = Type.Name("Long")
+    val isNumeric: Boolean = true
+  }
+
+  implicit object String_ extends PrimitiveType[String] {
+    val typeName =  Type.Name("String")
+    val isNumeric: Boolean = false
+  }
+
+  implicit object Double_ extends PrimitiveType[Double] {
+    val typeName =  Type.Name("Double")
+    val isNumeric: Boolean = true
+  }
+
+  private val supportedTypes = Map(
     Int_.typeName.value -> Some(Int_),
     Long_.typeName.value -> Some(Long_),
     String_.typeName.value -> Some(String_),
@@ -37,10 +57,10 @@ object PrimitiveType {
   )
 
   def fromConfig(columnType: String, isFilterable: Boolean): Option[(PrimitiveType[?], Type.Name)] =
-    terms.getOrElse(columnType, None).map { tp =>
+    supportedTypes.getOrElse(columnType, None).map { tp =>
       val ops =
         if (isFilterable)
-          if (tp.isNumetic) t"FilterableNum" else t"Filterable"
+          if (tp.isNumeric) t"FilterableNum" else t"Filterable"
         else
           t"Sortable"
 
@@ -48,8 +68,8 @@ object PrimitiveType {
     }
 
   def fromConfigBoth(columnType: String): Option[(PrimitiveType[?], Type.Name)] =
-    terms.getOrElse(columnType, None).map { tp =>
-      val ops = if(tp.isNumetic) t"BothNum" else t"Both"
+    supportedTypes.getOrElse(columnType, None).map { tp =>
+      val ops = if(tp.isNumeric) t"BothNum" else t"Both"
       (tp, ops)
     }
 }

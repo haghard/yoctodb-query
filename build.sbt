@@ -4,6 +4,7 @@ scalaVersion := "2.13.18"
 val AmmoniteVersion = "3.0.9"
 
 //lazy val requiredJvmVersion = sys.props("java.specification.version")
+//export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home
 val requiredJvmVersion = "25"
 
 initialize := {
@@ -39,7 +40,7 @@ scalafmtOnCompile := true
 libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
-    "ch.qos.logback"     %  "logback-classic" % "1.5.32",
+    "ch.qos.logback"     %  "logback-classic" % "1.5.37",
     "org.scalameta"      %% "scalameta" % "4.17.0",
     "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
