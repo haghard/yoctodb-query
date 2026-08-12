@@ -190,7 +190,7 @@ object IndexGeneratorPlugin extends AutoPlugin {
         val reader = DatabaseFormat.getCurrent().getDatabaseReader()
         val db: V1Database = reader.from(Buffer.mmap(indexFile, false)).asInstanceOf[V1Database]
         println(
-          s"★ ★ ★ Loaded index from:${indexFile} [${indexFile.length() / (1024 * 1024)}MB / NumOfDocs: ${db.getDocumentCount()} ] ★ ★ ★\n"
+          s"★ ★ ★ Loaded index from:$indexFile [${indexFile.length() / (1024 * 1024)}MB / NumOfDocs: ${db.getDocumentCount()} ] ★ ★ ★\n"
         )
 
         val sortersField = db.getClass().getDeclaredField("sorters")

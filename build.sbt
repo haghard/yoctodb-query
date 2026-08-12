@@ -40,7 +40,7 @@ scalafmtOnCompile := true
 libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
-    "ch.qos.logback"     %  "logback-classic" % "1.6.0",
+    "ch.qos.logback"     %  "logback-classic" % "1.6.2",
     "org.scalameta"      %% "scalameta" % "4.17.3",
     "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
