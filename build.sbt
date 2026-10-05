@@ -41,7 +41,7 @@ libraryDependencies ++=
   Seq(
     "com.yandex.yoctodb" % "yoctodb-core" % "0.0.20",
     "ch.qos.logback"     %  "logback-classic" % "1.6.2",
-    "org.scalameta"      %% "scalameta" % "4.17.3",
+    "org.scalameta"      %% "scalameta" % "4.17.4",
     "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
     "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
   )
