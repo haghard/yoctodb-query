@@ -39,7 +39,7 @@ object MainQuery extends App with IndexLoader {
     gameStatIndex <- loadIndex("indexes/gameStat")
     playerStatIndex <- loadIndex("indexes/playerStat")
   } yield {
-    val q =
+    val lastNGames =
       yocto
         .select
         .where(query.dsl.gameInfo.games_stage.$.=:=("season-26-27"))
@@ -47,7 +47,7 @@ object MainQuery extends App with IndexLoader {
         .limit(10)
 
     gamesInfoIndex.executeAndUnlimitedCount(
-      q,
+      lastNGames,
       (docId: Int, db: Database) => {
         val gamePayload = gamesInfoIndex.getFieldValue(docId, "g_payload")
         val gameInfo = gamesInfoIndex.getFieldValue(docId, "g_info")

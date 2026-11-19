@@ -73,6 +73,8 @@ object QueryGameStat extends App with IndexLoader {
         },
       )
 
+      println(HeapUtils.logNativeMemory())
+
     case Failure(ex) =>
       ex.printStackTrace()
   }
