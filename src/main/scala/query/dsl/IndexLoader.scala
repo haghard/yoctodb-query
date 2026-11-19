@@ -9,7 +9,7 @@ import java.nio.file.Paths
 import scala.util.Try
 
 trait IndexLoader {
-  lazy val logger = LoggerFactory.getLogger("app")
+  def logger = LoggerFactory.getLogger("app")
 
   def loadIndex(indexPath: String): Try[V1Database] =
     Try {

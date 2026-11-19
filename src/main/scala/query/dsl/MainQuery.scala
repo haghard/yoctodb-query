@@ -42,9 +42,9 @@ object MainQuery extends App with IndexLoader {
     val q =
       yocto
         .select
-        .where(query.dsl.gameInfo.games_stage.$.=:=("playoff-25-26"))
+        .where(query.dsl.gameInfo.games_stage.$.=:=("season-26-27"))
         .orderBy(query.dsl.gameInfo.games_ts.$.desc())
-        .limit(100)
+        .limit(10)
 
     gamesInfoIndex.executeAndUnlimitedCount(
       q,
